@@ -229,26 +229,21 @@ export default function HomePage() {
               </div>
 
               <button
-                style={{
-                  width: "100%",
-                  padding: "16px 20px",
-                  borderRadius: "999px",
-                  border: "none",
-                  background:
-                    "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: "0 12px 30px rgba(236,72,153,0.22)",
-                }}
-              >
-                Get My Next Step
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
+  onClick={() => window.location.href = "/stuck"}
+  style={{
+    width: "100%",
+    padding: "16px 20px",
+    borderRadius: "999px",
+    border: "none",
+    background:
+      "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 12px 30px rgba(236,72,153,0.22)",
+  }}
+>
+  Get My Next Step
+</button>
+  
