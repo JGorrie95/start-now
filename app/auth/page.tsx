@@ -21,7 +21,16 @@ export default function AuthPage() {
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) {
-      setError("Something went wrong. Try again.");
+      console.error("Sign-in error:", error);
+      let message = error.message || "Something went wrong. Please try again.";
+      if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+        message = "Too many sign-in attempts. Please wait a minute and try again.";
+      } else if (error.code === "email_address_invalid") {
+        message = "That email address doesn't look valid. Please check it.";
+      } else if (error.message?.toLowerCase().includes("fetch")) {
+        message = "Couldn't reach the server. Check your connection and try again.";
+      }
+      setError(message);
       setLoading(false);
       return;
     }
