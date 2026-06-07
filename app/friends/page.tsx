@@ -8,6 +8,7 @@ type FriendProfile = {
   username: string;
   streak_count: number;
   longest_streak: number;
+  avatar_url: string | null;
 };
 
 type PendingRequest = {
@@ -23,7 +24,7 @@ const glassCard: React.CSSProperties = {
 
 export default function FriendsPage() {
   const router = useRouter();
-  const [myProfile, setMyProfile] = useState<{ username: string; streak_count: number; longest_streak: number } | null>(null);
+  const [myProfile, setMyProfile] = useState<{ username: string; streak_count: number; longest_streak: number; avatar_url: string | null } | null>(null);
   const [friends, setFriends] = useState<FriendProfile[]>([]);
   const [pending, setPending] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,12 +41,12 @@ export default function FriendsPage() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, streak_count, longest_streak, invite_code")
+      .select("username, streak_count, longest_streak, invite_code, avatar_url")
       .eq("id", user.id)
       .single();
 
     if (!profile) { router.push("/profile"); return; }
-    setMyProfile({ username: profile.username, streak_count: profile.streak_count, longest_streak: profile.longest_streak });
+    setMyProfile({ username: profile.username, streak_count: profile.streak_count, longest_streak: profile.longest_streak, avatar_url: profile.avatar_url });
     setInviteCode(profile.invite_code);
 
     const { data: friendships } = await supabase
@@ -61,7 +62,7 @@ export default function FriendsPage() {
     if (friendIds.length > 0) {
       const { data: friendProfiles } = await supabase
         .from("profiles")
-        .select("username, streak_count, longest_streak")
+        .select("username, streak_count, longest_streak, avatar_url")
         .in("id", friendIds);
       setFriends(friendProfiles ?? []);
     } else {
@@ -153,6 +154,12 @@ export default function FriendsPage() {
                   <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? "#f59e0b" : "#a8a29e", width: "24px", textAlign: "center", fontFamily: "Georgia, serif" }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </div>
+                  {person.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={person.avatar_url} alt={person.username} style={{ width: "34px", height: "34px", borderRadius: "10px", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>✦</div>
+                  )}
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: "15px" }}>{person.username}</span>
                     {person.isMe && <span style={{ fontSize: "12px", color: "#d97706", marginLeft: "8px" }}>you</span>}

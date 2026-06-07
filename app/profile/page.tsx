@@ -9,6 +9,7 @@ type Profile = {
   streak_count: number;
   longest_streak: number;
   invite_code: string;
+  avatar_url: string | null;
 };
 
 const glassCard: React.CSSProperties = {
@@ -25,6 +26,8 @@ export default function ProfilePage() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const loadProfile = useCallback(async () => {
     const supabase = createClient();
@@ -33,7 +36,7 @@ export default function ProfilePage() {
 
     const { data } = await supabase
       .from("profiles")
-      .select("username, streak_count, longest_streak, invite_code")
+      .select("username, streak_count, longest_streak, invite_code, avatar_url")
       .eq("id", user.id)
       .single();
 
@@ -58,6 +61,40 @@ export default function ProfilePage() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setUploadError("Image must be under 5MB."); return; }
+    if (!file.type.startsWith("image/")) { setUploadError("Please choose an image file."); return; }
+
+    setUploading(true);
+    setUploadError("");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/auth"); return; }
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/avatar.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, cacheControl: "3600" });
+
+    if (upErr) {
+      console.error("Avatar upload error:", upErr);
+      setUploadError("Upload failed. Make sure the 'avatars' storage bucket exists.");
+      setUploading(false);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    const bustedUrl = `${publicUrl}?t=${Date.now()}`;
+
+    await supabase.from("profiles").update({ avatar_url: bustedUrl }).eq("id", user.id);
+    await loadProfile();
+    setUploading(false);
   };
 
   const copyInvite = () => {
@@ -121,9 +158,21 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ ...glassCard, marginBottom: "16px", textAlign: "center", padding: "32px 24px" }}>
-          <div style={{ width: "64px", height: "64px", borderRadius: "20px", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "28px" }}>✦</div>
+          <label style={{ display: "block", width: "84px", height: "84px", margin: "0 auto 16px", cursor: uploading ? "wait" : "pointer", position: "relative" }}>
+            <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} style={{ display: "none" }} />
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar_url} alt={profile.username} style={{ width: "84px", height: "84px", borderRadius: "24px", objectFit: "cover", border: "2px solid rgba(245,158,11,0.3)" }} />
+            ) : (
+              <div style={{ width: "84px", height: "84px", borderRadius: "24px", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "34px" }}>✦</div>
+            )}
+            <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: "2px solid white", color: "white" }}>
+              {uploading ? "…" : "📷"}
+            </div>
+          </label>
           <h1 style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>{profile?.username}</h1>
-          <p style={{ color: "#a8a29e", fontSize: "13px", margin: 0 }}>Your profile</p>
+          <p style={{ color: "#a8a29e", fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it"}</p>
+          {uploadError && <p style={{ color: "#ef4444", fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>

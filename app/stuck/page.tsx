@@ -24,6 +24,34 @@ type DoneState =
   | { status: "alreadyDone"; streak: number }
   | { status: "unauthenticated" };
 
+function Confetti() {
+  const colors = ["#f59e0b", "#fbbf24", "#fb923c", "#fcd34d", "#fdba74", "#16a34a", "#ef4444"];
+  const pieces = Array.from({ length: 44 });
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 60, overflow: "hidden" }}>
+      {pieces.map((_, i) => {
+        const left = Math.random() * 100;
+        const delay = Math.random() * 0.4;
+        const duration = 1.8 + Math.random() * 1.4;
+        const size = 7 + Math.random() * 8;
+        const color = colors[i % colors.length];
+        const round = i % 3 === 0;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute", top: 0, left: `${left}%`,
+              width: `${size}px`, height: `${round ? size : size * 0.55}px`,
+              background: color, borderRadius: round ? "50%" : "2px",
+              animation: `confetti-fall ${duration}s linear ${delay}s forwards`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function StuckContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -88,12 +116,15 @@ function StuckContent() {
                     <p style={{ textAlign: "center", color: "#a8a29e", fontSize: "14px", margin: 0, padding: "14px 0" }}>Saving…</p>
                   )}
                   {doneState.status === "success" && (
-                    <div style={{ background: "linear-gradient(135deg, #fef3c7, #fffbeb)", borderRadius: "16px", padding: "16px", textAlign: "center", border: "1px solid rgba(245,158,11,0.3)" }}>
-                      <p style={{ fontSize: "24px", margin: "0 0 4px" }}>🔥</p>
-                      <p style={{ fontSize: "18px", fontWeight: 700, color: "#d97706", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>{doneState.streak} day streak!</p>
-                      <p style={{ fontSize: "13px", color: "#78716c", margin: "0 0 12px" }}>Keep it going tomorrow.</p>
-                      <button onClick={() => router.push("/friends")} style={{ padding: "10px 20px", borderRadius: "999px", border: "none", background: "#f59e0b", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>See your friends →</button>
-                    </div>
+                    <>
+                      <Confetti />
+                      <div style={{ background: "linear-gradient(135deg, #fef3c7, #fffbeb)", borderRadius: "16px", padding: "20px 16px", textAlign: "center", border: "1px solid rgba(245,158,11,0.3)", animation: "streak-pop 0.5s ease-out" }}>
+                        <p style={{ fontSize: "40px", margin: "0 0 4px", animation: "flame-bounce 0.9s ease-in-out 0.2s" }}>🔥</p>
+                        <p style={{ fontSize: "22px", fontWeight: 700, color: "#d97706", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>{doneState.streak} day streak!</p>
+                        <p style={{ fontSize: "13px", color: "#78716c", margin: "0 0 14px" }}>Keep it going tomorrow.</p>
+                        <button onClick={() => router.push("/friends")} style={{ padding: "10px 20px", borderRadius: "999px", border: "none", background: "#f59e0b", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>See your friends →</button>
+                      </div>
+                    </>
                   )}
                   {doneState.status === "alreadyDone" && (
                     <div style={{ background: "#f0fdf4", borderRadius: "16px", padding: "14px 16px", textAlign: "center", border: "1px solid rgba(22,163,74,0.2)" }}>
