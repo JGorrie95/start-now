@@ -9,31 +9,67 @@ export default function AuthPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [debug, setDebug] = useState("");
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) {
-      console.error("Sign-in error:", error);
-      let message = error.message || "Something went wrong. Please try again.";
-      if (error.code === "over_email_send_rate_limit" || error.status === 429) {
-        message = "Too many sign-in attempts. Please wait a minute and try again.";
-      } else if (error.code === "email_address_invalid") {
-        message = "That email address doesn't look valid. Please check it.";
-      } else if (error.message?.toLowerCase().includes("fetch")) {
-        message = "Couldn't reach the server. Check your connection and try again.";
-      }
-      setError(message);
+    setDebug("");
+
+    // --- TEMPORARY DIAGNOSTIC ---
+    const runtimeUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const runtimeKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const diag: string[] = [];
+    diag.push(`URL: ${JSON.stringify(runtimeUrl)}`);
+    diag.push(`KEY length: ${runtimeKey ? runtimeKey.length : "MISSING"}`);
+    diag.push(`origin: ${window.location.origin}`);
+
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (err) {
+      diag.push(`createClient threw: ${String(err)}`);
+      setDebug(diag.join("\n"));
+      setError("Setup error — see diagnostic below.");
       setLoading(false);
       return;
     }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) {
+        console.error("Sign-in error:", error);
+        diag.push(`error.name: ${error.name}`);
+        diag.push(`error.message: ${error.message}`);
+        diag.push(`error.status: ${error.status}`);
+        diag.push(`error.code: ${(error as { code?: string }).code}`);
+        setDebug(diag.join("\n"));
+
+        let message = error.message || "Something went wrong. Please try again.";
+        if ((error as { code?: string }).code === "over_email_send_rate_limit" || error.status === 429) {
+          message = "Too many sign-in attempts. Please wait a minute and try again.";
+        } else if ((error as { code?: string }).code === "email_address_invalid") {
+          message = "That email address doesn't look valid. Please check it.";
+        } else if (error.message?.toLowerCase().includes("fetch")) {
+          message = "Couldn't reach the server. Check your connection and try again.";
+        }
+        setError(message);
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      diag.push(`THROWN: ${String(err)}`);
+      setDebug(diag.join("\n"));
+      setError("Request failed — see diagnostic below.");
+      setLoading(false);
+      return;
+    }
+
     setSent(true);
     setLoading(false);
   };
@@ -92,6 +128,11 @@ export default function AuthPage() {
             {loading ? "Sending…" : "Send magic link →"}
           </button>
         </form>
+        {debug && (
+          <pre style={{ marginTop: "18px", textAlign: "left", background: "#1c1917", color: "#fbbf24", padding: "14px", borderRadius: "12px", fontSize: "11px", lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-all", overflowX: "auto" }}>
+            {debug}
+          </pre>
+        )}
       </div>
     </main>
   );
