@@ -1,10 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
   const [task, setTask] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => setIsLoggedIn(!!user));
+  }, []);
 
   const handleStart = () => {
     if (!task.trim()) return;
@@ -25,7 +32,16 @@ export default function HomePage() {
       <section style={{ maxWidth: "1080px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "64px", flexWrap: "wrap", gap: "12px" }}>
           <div style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.03em" }}>✦ Start Now</div>
-          <div style={{ fontSize: "13px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 16px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", fontFamily: "system-ui, sans-serif" }}>For overwhelmed brains</div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {isLoggedIn ? (
+              <>
+                <button onClick={() => router.push("/friends")} style={{ fontSize: "13px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>Friends</button>
+                <button onClick={() => router.push("/profile")} style={{ fontSize: "13px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>Profile</button>
+              </>
+            ) : (
+              <button onClick={() => router.push("/auth")} style={{ fontSize: "13px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer", fontFamily: "system-ui, sans-serif" }}>Sign in</button>
+            )}
+          </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "40px", alignItems: "center" }}>
           <div>

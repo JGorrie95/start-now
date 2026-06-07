@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { completeStep } from "@/app/actions";
 
 function getNextStep(input: string): { step: string; reason: string } {
   const lower = input.toLowerCase();
@@ -16,14 +17,45 @@ function getNextStep(input: string): { step: string; reason: string } {
   return { step: "Pick the easiest thing on your list and do it for just 5 minutes.", reason: "Starting small lowers pressure and creates real momentum." };
 }
 
+type DoneState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; streak: number }
+  | { status: "alreadyDone"; streak: number }
+  | { status: "unauthenticated" };
+
 function StuckContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const taskParam = searchParams.get("task") ?? "";
   const [text, setText] = useState(taskParam);
   const [result, setResult] = useState<{ step: string; reason: string } | null>(null);
-  useEffect(() => { if (taskParam.trim()) setResult(getNextStep(taskParam)); }, [taskParam]);
-  const handleSubmit = () => { if (!text.trim()) return; setResult(getNextStep(text)); };
+  const [doneState, setDoneState] = useState<DoneState>({ status: "idle" });
+
+  useEffect(() => {
+    if (taskParam.trim()) setResult(getNextStep(taskParam));
+  }, [taskParam]);
+
+  const handleSubmit = () => {
+    if (!text.trim()) return;
+    setResult(getNextStep(text));
+    setDoneState({ status: "idle" });
+  };
+
+  const handleMarkDone = async () => {
+    setDoneState({ status: "loading" });
+    const res = await completeStep();
+    if (res.error === "unauthenticated") {
+      setDoneState({ status: "unauthenticated" });
+    } else if ("alreadyDone" in res && res.alreadyDone) {
+      setDoneState({ status: "alreadyDone", streak: res.streak ?? 0 });
+    } else if ("streak" in res && res.streak !== undefined) {
+      setDoneState({ status: "success", streak: res.streak });
+    } else {
+      setDoneState({ status: "idle" });
+    }
+  };
+
   return (
     <main style={{ minHeight: "100vh", background: "#FAF8F3", padding: "48px 24px 80px", fontFamily: "system-ui, sans-serif", color: "#1c1917", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "fixed", top: "-15%", left: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(251,191,36,0.2)", filter: "blur(80px)", pointerEvents: "none", zIndex: 0 }} />
@@ -37,12 +69,46 @@ function StuckContent() {
           <div style={{ background: "rgba(255,255,255,0.85)", borderRadius: "22px", padding: "22px" }}>
             <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="What's on your mind? e.g. laundry, emails, groceries..." style={{ width: "100%", minHeight: "160px", padding: "16px", borderRadius: "18px", border: "1px solid rgba(0,0,0,0.08)", fontSize: "16px", lineHeight: 1.6, resize: "none", outline: "none", background: "#ffffff", color: "#1c1917", boxSizing: "border-box", fontFamily: "system-ui, sans-serif" }} />
             <button onClick={handleSubmit} disabled={!text.trim()} style={{ marginTop: "14px", width: "100%", padding: "15px 20px", borderRadius: "999px", border: "none", background: text.trim() ? "#f59e0b" : "#e5e7eb", color: text.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: text.trim() ? "pointer" : "not-allowed", boxSizing: "border-box" }}>Give Me My Next Step →</button>
+
             {result && (
-              <div style={{ marginTop: "18px", background: "#fffbeb", borderRadius: "20px", padding: "20px 22px", border: "1px solid rgba(245,158,11,0.2)" }}>
-                <p style={{ fontSize: "13px", color: "#d97706", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: 600 }}>Your next step</p>
-                <p style={{ fontSize: "18px", fontWeight: 600, color: "#1c1917", margin: "0 0 14px 0", lineHeight: 1.45, fontFamily: "Georgia, serif" }}>{result.step}</p>
-                <p style={{ fontSize: "14px", color: "#78716c", margin: 0, lineHeight: 1.6 }}>{result.reason}</p>
-              </div>
+              <>
+                <div style={{ marginTop: "18px", background: "#fffbeb", borderRadius: "20px", padding: "20px 22px", border: "1px solid rgba(245,158,11,0.2)" }}>
+                  <p style={{ fontSize: "13px", color: "#d97706", marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: 600 }}>Your next step</p>
+                  <p style={{ fontSize: "18px", fontWeight: 600, color: "#1c1917", margin: "0 0 14px 0", lineHeight: 1.45, fontFamily: "Georgia, serif" }}>{result.step}</p>
+                  <p style={{ fontSize: "14px", color: "#78716c", margin: 0, lineHeight: 1.6 }}>{result.reason}</p>
+                </div>
+
+                <div style={{ marginTop: "12px" }}>
+                  {doneState.status === "idle" && (
+                    <button onClick={handleMarkDone} style={{ width: "100%", padding: "14px", borderRadius: "999px", border: "2px solid #f59e0b", background: "transparent", color: "#d97706", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box" }}>
+                      ✓ I did it! Mark as done
+                    </button>
+                  )}
+                  {doneState.status === "loading" && (
+                    <p style={{ textAlign: "center", color: "#a8a29e", fontSize: "14px", margin: 0, padding: "14px 0" }}>Saving…</p>
+                  )}
+                  {doneState.status === "success" && (
+                    <div style={{ background: "linear-gradient(135deg, #fef3c7, #fffbeb)", borderRadius: "16px", padding: "16px", textAlign: "center", border: "1px solid rgba(245,158,11,0.3)" }}>
+                      <p style={{ fontSize: "24px", margin: "0 0 4px" }}>🔥</p>
+                      <p style={{ fontSize: "18px", fontWeight: 700, color: "#d97706", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>{doneState.streak} day streak!</p>
+                      <p style={{ fontSize: "13px", color: "#78716c", margin: "0 0 12px" }}>Keep it going tomorrow.</p>
+                      <button onClick={() => router.push("/friends")} style={{ padding: "10px 20px", borderRadius: "999px", border: "none", background: "#f59e0b", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>See your friends →</button>
+                    </div>
+                  )}
+                  {doneState.status === "alreadyDone" && (
+                    <div style={{ background: "#f0fdf4", borderRadius: "16px", padding: "14px 16px", textAlign: "center", border: "1px solid rgba(22,163,74,0.2)" }}>
+                      <p style={{ fontSize: "15px", fontWeight: 600, color: "#16a34a", margin: "0 0 2px" }}>✓ Already marked for today</p>
+                      <p style={{ fontSize: "13px", color: "#78716c", margin: 0 }}>🔥 {doneState.streak} day streak — come back tomorrow!</p>
+                    </div>
+                  )}
+                  {doneState.status === "unauthenticated" && (
+                    <div style={{ background: "rgba(255,255,255,0.8)", borderRadius: "16px", padding: "14px 16px", textAlign: "center", border: "1px solid rgba(0,0,0,0.07)" }}>
+                      <p style={{ fontSize: "14px", color: "#78716c", margin: "0 0 10px" }}>Sign in to save your streak and compete with friends.</p>
+                      <button onClick={() => router.push("/auth")} style={{ padding: "10px 20px", borderRadius: "999px", border: "none", background: "#f59e0b", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Sign in →</button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
