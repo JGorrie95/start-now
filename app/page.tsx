@@ -1,249 +1,65 @@
-import Link from "next/link";
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const [task, setTask] = useState("");
+  const router = useRouter();
+
+  const handleStart = () => {
+    if (!task.trim()) return;
+    router.push(`/stuck?task=${encodeURIComponent(task.trim())}`);
+  };
+
+  const quickStarts = [
+    "I have too many things to do",
+    "I need to start one task",
+    "I got distracted again",
+    "I feel overwhelmed",
+  ];
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 30%), radial-gradient(circle at top right, rgba(236,72,153,0.16), transparent 28%), linear-gradient(180deg, #f8f8f5 0%, #f3f4f6 100%)",
-        color: "#111111",
-        fontFamily: "Arial, sans-serif",
-        padding: "32px 20px 80px",
-      }}
-    >
-      <section
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "60px",
-            flexWrap: "wrap",
-            gap: "16px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "22px",
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Start Now
-          </div>
-
-          <div
-            style={{
-              fontSize: "14px",
-              color: "#555",
-              background: "rgba(255,255,255,0.65)",
-              padding: "10px 16px",
-              borderRadius: "999px",
-              border: "1px solid rgba(0,0,0,0.06)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            For overwhelmed brains
-          </div>
+    <main style={{ minHeight: "100vh", background: "#FAF8F3", color: "#1c1917", fontFamily: "Georgia, serif", padding: "32px 20px 80px", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "fixed", top: "-15%", left: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(251,191,36,0.2)", filter: "blur(80px)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "fixed", bottom: "-15%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(253,186,116,0.18)", filter: "blur(80px)", pointerEvents: "none", zIndex: 0 }} />
+      <section style={{ maxWidth: "1080px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "64px", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ fontSize: "20px", fontWeight: 700, letterSpacing: "-0.03em" }}>✦ Start Now</div>
+          <div style={{ fontSize: "13px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 16px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", fontFamily: "system-ui, sans-serif" }}>For overwhelmed brains</div>
         </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "30px",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "40px", alignItems: "center" }}>
           <div>
-            <p
-              style={{
-                fontSize: "15px",
-                color: "#666",
-                marginBottom: "12px",
-              }}
-            >
-              From stuck to started
-            </p>
-
-            <h1
-              style={{
-                fontSize: "clamp(48px, 9vw, 92px)",
-                lineHeight: 0.95,
-                letterSpacing: "-0.06em",
-                margin: "0 0 20px 0",
-              }}
-            >
-              One small step
-              <br />
-              can change
-              <br />
-              your whole day.
-            </h1>
-
-            <p
-              style={{
-                fontSize: "20px",
-                lineHeight: 1.6,
-                color: "#555",
-                maxWidth: "560px",
-                marginBottom: "30px",
-              }}
-            >
-              Start Now helps you clear the mental clutter, calm the overwhelm,
-              and choose one doable next step.
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "14px",
-                flexWrap: "wrap",
-              }}
-            >
-              <Link href="/stuck">
-                <button
-                  style={{
-                    padding: "16px 26px",
-                    borderRadius: "999px",
-                    border: "none",
-                    background:
-                      "linear-gradient(135deg, #111111 0%, #3b82f6 100%)",
-                    color: "white",
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 12px 30px rgba(59,130,246,0.22)",
-                  }}
-                >
-                  Help Me Begin
-                </button>
-              </Link>
-
-              <button
-                style={{
-                  padding: "16px 26px",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  background: "rgba(255,255,255,0.7)",
-                  color: "#111",
-                  fontSize: "16px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                See How It Works
-              </button>
+            <p style={{ fontSize: "14px", color: "#a8a29e", marginBottom: "14px", letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: "system-ui, sans-serif" }}>From stuck to started</p>
+            <h1 style={{ fontSize: "clamp(44px, 8vw, 82px)", lineHeight: 0.95, letterSpacing: "-0.05em", margin: "0 0 24px 0", fontWeight: 700 }}>One small step<br />changes<br />everything.</h1>
+            <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#78716c", maxWidth: "500px", marginBottom: "32px", fontFamily: "system-ui, sans-serif" }}>Start Now helps you clear the mental clutter and find one calm, doable next step.</p>
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <a href="/stuck" style={{ display: "inline-block", padding: "14px 26px", borderRadius: "999px", background: "#f59e0b", color: "white", fontSize: "15px", fontWeight: 600, textDecoration: "none", fontFamily: "system-ui, sans-serif", boxShadow: "0 8px 24px rgba(245,158,11,0.3)" }}>Help Me Begin →</a>
+              <a href="#how-it-works" style={{ display: "inline-block", padding: "14px 26px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.1)", background: "rgba(255,255,255,0.7)", color: "#44403c", fontSize: "15px", fontWeight: 500, textDecoration: "none", fontFamily: "system-ui, sans-serif" }}>See How It Works</a>
             </div>
           </div>
-
-          <div
-            style={{
-              background: "rgba(255,255,255,0.7)",
-              border: "1px solid rgba(255,255,255,0.6)",
-              borderRadius: "32px",
-              padding: "22px",
-              backdropFilter: "blur(14px)",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.08)",
-            }}
-          >
-            <div
-              style={{
-                background: "rgba(255,255,255,0.8)",
-                borderRadius: "26px",
-                padding: "22px",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: "#777",
-                  marginBottom: "8px",
-                }}
-              >
-                Right now
-              </p>
-
-              <h2
-                style={{
-                  fontSize: "30px",
-                  margin: "0 0 18px 0",
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                What’s on your mind?
-              </h2>
-
-              <textarea
-                placeholder="Laundry, call dentist, text mom back, groceries, finish that one email..."
-                style={{
-                  width: "100%",
-                  minHeight: "150px",
-                  padding: "18px",
-                  borderRadius: "22px",
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  fontSize: "17px",
-                  lineHeight: 1.5,
-                  resize: "none",
-                  outline: "none",
-                  background: "#ffffff",
-                  color: "#111",
-                  marginBottom: "16px",
-                }}
-              />
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: "10px",
-                  marginBottom: "18px",
-                }}
-              >
-                {[
-                  "I have too many things to do",
-                  "I need to start one task",
-                  "I got distracted",
-                  "I feel overwhelmed",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    style={{
-                      padding: "14px 16px",
-                      borderRadius: "18px",
-                      background: "#ffffff",
-                      border: "1px solid rgba(0,0,0,0.06)",
-                      fontSize: "15px",
-                      color: "#222",
-                    }}
-                  >
-                    {item}
-                  </div>
+          <div style={{ background: "rgba(255,255,255,0.65)", border: "1px solid rgba(255,255,255,0.8)", borderRadius: "28px", padding: "24px", backdropFilter: "blur(16px)", boxShadow: "0 20px 50px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: "rgba(255,255,255,0.85)", borderRadius: "22px", padding: "22px" }}>
+              <p style={{ fontSize: "13px", color: "#a8a29e", marginBottom: "6px", fontFamily: "system-ui, sans-serif", letterSpacing: "0.04em", textTransform: "uppercase" }}>Right now</p>
+              <h2 style={{ fontSize: "26px", margin: "0 0 18px 0", letterSpacing: "-0.04em", fontWeight: 600 }}>What&apos;s on your mind?</h2>
+              <textarea value={task} onChange={(e) => setTask(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStart(); } }} placeholder="Laundry, emails, study, clean my room..." style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: "18px", border: "1px solid rgba(0,0,0,0.08)", fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: "#ffffff", color: "#1c1917", marginBottom: "14px", boxSizing: "border-box", fontFamily: "system-ui, sans-serif" }} />
+              <div style={{ display: "grid", gap: "8px", marginBottom: "16px" }}>
+                {quickStarts.map((item) => (
+                  <button key={item} onClick={() => setTask(item)} style={{ padding: "12px 16px", borderRadius: "14px", background: task === item ? "#fef3c7" : "#ffffff", border: task === item ? "1px solid #fbbf24" : "1px solid rgba(0,0,0,0.07)", fontSize: "14px", color: "#44403c", cursor: "pointer", textAlign: "left", fontFamily: "system-ui, sans-serif" }}>{item}</button>
                 ))}
               </div>
-
-              <button
-  onClick={() => window.location.href = "/stuck"}
-  style={{
-    width: "100%",
-    padding: "16px 20px",
-    borderRadius: "999px",
-    border: "none",
-    background:
-      "linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)",
-    color: "white",
-    fontSize: "16px",
-    fontWeight: 700,
-    cursor: "pointer",
-    boxShadow: "0 12px 30px rgba(236,72,153,0.22)",
-  }}
->
-  Get My Next Step
-</button>
-  
+              <button onClick={handleStart} disabled={!task.trim()} style={{ display: "block", width: "100%", padding: "15px 20px", borderRadius: "999px", border: "none", background: task.trim() ? "#f59e0b" : "#e5e7eb", color: task.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: task.trim() ? "pointer" : "not-allowed", fontFamily: "system-ui, sans-serif", boxSizing: "border-box" }}>Get My Next Step →</button>
+            </div>
+          </div>
+        </div>
+        <div id="how-it-works" style={{ marginTop: "90px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+          {[{ title: "1. Dump the chaos", body: "Write whatever is spinning in your head. It does not need to be organised." }, { title: "2. Pick one direction", body: "Start Now cuts the noise and points you toward one small action." }, { title: "3. Begin gently", body: "No shame. No giant plan. Just one doable next step." }].map((step) => (
+            <div key={step.title} style={{ background: "rgba(255,255,255,0.65)", border: "1px solid rgba(0,0,0,0.06)", borderRadius: "22px", padding: "22px", backdropFilter: "blur(8px)" }}>
+              <h3 style={{ margin: "0 0 10px 0", fontSize: "18px", letterSpacing: "-0.03em" }}>{step.title}</h3>
+              <p style={{ margin: 0, color: "#78716c", lineHeight: 1.6, fontSize: "14px", fontFamily: "system-ui, sans-serif" }}>{step.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
