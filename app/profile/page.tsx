@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createProfile } from "@/app/actions";
+import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
+import { SparkMark } from "@/app/spark-mark";
 
 type Profile = {
   username: string;
@@ -12,9 +14,11 @@ type Profile = {
   avatar_url: string | null;
 };
 
-const glassCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.85)", borderRadius: "24px", padding: "24px",
-  border: "1px solid rgba(255,255,255,0.9)", boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+const card: React.CSSProperties = { ...cardSurface, padding: "24px" };
+
+const navButton: React.CSSProperties = {
+  fontSize: "14px", color: colors.inkSoft, background: colors.paper, padding: "8px 14px",
+  borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.08)}`, cursor: "pointer", fontFamily: fonts.body,
 };
 
 export default function ProfilePage() {
@@ -104,36 +108,33 @@ export default function ProfilePage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const bg: React.CSSProperties = {
-    minHeight: "100vh", background: "#FAF8F3", padding: "40px 20px 80px",
-    fontFamily: "system-ui, sans-serif", color: "#1c1917", position: "relative", overflow: "hidden",
-  };
+  const bg: React.CSSProperties = { ...pageBg, padding: "40px 20px 80px" };
 
   if (loading) return (
     <main style={bg}>
-      <div style={{ maxWidth: "480px", margin: "0 auto", textAlign: "center", paddingTop: "80px", color: "#a8a29e" }}>Loading…</div>
+      <div style={{ maxWidth: "480px", margin: "0 auto", textAlign: "center", paddingTop: "80px", color: colors.inkFaint }}>Loading…</div>
     </main>
   );
 
   if (needsSetup) return (
     <main style={bg}>
-      <div style={{ position: "fixed", top: "-15%", left: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(251,191,36,0.2)", filter: "blur(80px)", pointerEvents: "none" }} />
+      <div className="grain-overlay" />
       <div style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <button onClick={() => router.push("/")} style={{ color: "#a8a29e", background: "none", border: "none", fontSize: "14px", cursor: "pointer", marginBottom: "32px" }}>← Start Now</button>
-        <h1 style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 8px", fontFamily: "Georgia, serif" }}>Pick your username</h1>
-        <p style={{ color: "#78716c", marginBottom: "28px", lineHeight: 1.6 }}>This is how your friends will find you and see your streak.</p>
-        <div style={glassCard}>
+        <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", marginBottom: "32px", fontFamily: fonts.body }}>← Start Now</button>
+        <h1 style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 8px", fontFamily: fonts.display }}>Pick your username</h1>
+        <p style={{ color: colors.inkSoft, marginBottom: "28px", lineHeight: 1.6 }}>This is how your friends will find you and see your streak.</p>
+        <div style={card}>
           <form onSubmit={handleCreateProfile} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <input
               value={username} onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. jakob_g" autoComplete="off"
-              style={{ padding: "14px 18px", borderRadius: "14px", border: "1px solid rgba(0,0,0,0.1)", fontSize: "16px", outline: "none", background: "#fff" }}
+              style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: "#fff", fontFamily: fonts.body }}
             />
-            <p style={{ fontSize: "12px", color: "#a8a29e", margin: 0 }}>3–20 characters. Letters, numbers and _ only.</p>
+            <p style={{ fontSize: "12px", color: colors.inkFaint, margin: 0 }}>3–20 characters. Letters, numbers and _ only.</p>
             {formError && <p style={{ color: "#ef4444", fontSize: "14px", margin: 0 }}>{formError}</p>}
             <button
               type="submit" disabled={submitting || !username.trim()}
-              style={{ padding: "14px", borderRadius: "999px", border: "none", background: username.trim() ? "#f59e0b" : "#e5e7eb", color: username.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: username.trim() ? "pointer" : "not-allowed" }}
+              style={{ padding: "14px", borderRadius: radius.sm, border: "none", background: username.trim() ? colors.pineDeep : "#e5e7eb", color: username.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: username.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}
             >
               {submitting ? "Creating…" : "Create profile →"}
             </button>
@@ -147,54 +148,56 @@ export default function ProfilePage() {
 
   return (
     <main style={bg}>
-      <div style={{ position: "fixed", top: "-15%", left: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(251,191,36,0.2)", filter: "blur(80px)", pointerEvents: "none" }} />
+      <div className="grain-overlay" />
       <div style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-          <button onClick={() => router.push("/")} style={{ color: "#a8a29e", background: "none", border: "none", fontSize: "14px", cursor: "pointer" }}>← Start Now</button>
+          <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", fontFamily: fonts.body }}>← Start Now</button>
           <div style={{ display: "flex", gap: "12px" }}>
-            <button onClick={() => router.push("/friends")} style={{ fontSize: "14px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer" }}>Friends</button>
-            <button onClick={handleSignOut} style={{ fontSize: "14px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer" }}>Sign out</button>
+            <button onClick={() => router.push("/friends")} style={navButton}>Friends</button>
+            <button onClick={handleSignOut} style={navButton}>Sign out</button>
           </div>
         </div>
 
-        <div style={{ ...glassCard, marginBottom: "16px", textAlign: "center", padding: "32px 24px" }}>
+        <div style={{ ...card, marginBottom: "16px", textAlign: "center", padding: "32px 24px" }}>
           <label style={{ display: "block", width: "84px", height: "84px", margin: "0 auto 16px", cursor: uploading ? "wait" : "pointer", position: "relative" }}>
             <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} style={{ display: "none" }} />
             {profile?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt={profile.username} style={{ width: "84px", height: "84px", borderRadius: "24px", objectFit: "cover", border: "2px solid rgba(245,158,11,0.3)" }} />
+              <img src={profile.avatar_url} alt={profile.username} style={{ width: "84px", height: "84px", borderRadius: radius.md, objectFit: "cover", border: `2px solid ${tint(colors.pine, 0.3)}` }} />
             ) : (
-              <div style={{ width: "84px", height: "84px", borderRadius: "24px", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "34px" }}>✦</div>
+              <div style={{ width: "84px", height: "84px", borderRadius: radius.md, background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <SparkMark size={36} stroke="#fff" dot="#fff" />
+              </div>
             )}
-            <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: "2px solid white", color: "white" }}>
+            <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: "2px solid white", color: "white" }}>
               {uploading ? "…" : "📷"}
             </div>
           </label>
-          <h1 style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 4px", fontFamily: "Georgia, serif" }}>{profile?.username}</h1>
-          <p style={{ color: "#a8a29e", fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it"}</p>
+          <h1 style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 4px", fontFamily: fonts.display }}>{profile?.username}</h1>
+          <p style={{ color: colors.inkFaint, fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it"}</p>
           {uploadError && <p style={{ color: "#ef4444", fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-          <div style={{ ...glassCard, textAlign: "center" }}>
-            <div style={{ fontSize: "36px", fontWeight: 700, color: "#f59e0b", fontFamily: "Georgia, serif", letterSpacing: "-0.04em" }}>{profile?.streak_count ?? 0}</div>
-            <div style={{ fontSize: "13px", color: "#78716c", marginTop: "4px" }}>🔥 Current streak</div>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.pineDeep, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{profile?.streak_count ?? 0}</div>
+            <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>🔥 Current streak</div>
           </div>
-          <div style={{ ...glassCard, textAlign: "center" }}>
-            <div style={{ fontSize: "36px", fontWeight: 700, color: "#1c1917", fontFamily: "Georgia, serif", letterSpacing: "-0.04em" }}>{profile?.longest_streak ?? 0}</div>
-            <div style={{ fontSize: "13px", color: "#78716c", marginTop: "4px" }}>⭐ Best streak</div>
+          <div style={{ ...card, textAlign: "center" }}>
+            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.ink, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{profile?.longest_streak ?? 0}</div>
+            <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>⭐ Best streak</div>
           </div>
         </div>
 
-        <div style={glassCard}>
-          <p style={{ fontSize: "13px", color: "#a8a29e", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px", fontWeight: 600 }}>Your invite link</p>
-          <p style={{ fontSize: "13px", color: "#78716c", margin: "0 0 12px", lineHeight: 1.5 }}>Share this with friends so they can join your circle.</p>
-          <div style={{ background: "#fff", borderRadius: "12px", padding: "12px 14px", border: "1px solid rgba(0,0,0,0.07)", fontSize: "13px", color: "#44403c", wordBreak: "break-all", marginBottom: "10px" }}>
+        <div style={card}>
+          <p style={{ fontSize: "13px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px", fontWeight: 600 }}>Your invite link</p>
+          <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Share this with friends so they can join your circle.</p>
+          <div style={{ background: "#fff", borderRadius: radius.sm, padding: "12px 14px", border: `1px solid ${tint(colors.ink, 0.07)}`, fontSize: "13px", color: colors.inkSoft, wordBreak: "break-all", marginBottom: "10px" }}>
             {inviteUrl}
           </div>
           <button
             onClick={copyInvite}
-            style={{ width: "100%", padding: "12px", borderRadius: "999px", border: "none", background: copied ? "#f59e0b" : "rgba(245,158,11,0.1)", color: copied ? "white" : "#d97706", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+            style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? "white" : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}
           >
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>

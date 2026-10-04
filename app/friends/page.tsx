@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { sendFriendRequest, acceptFriendRequest } from "@/app/actions";
+import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
+import { SparkMark } from "@/app/spark-mark";
 
 type FriendProfile = {
   username: string;
@@ -17,9 +19,11 @@ type PendingRequest = {
   streak_count: number;
 };
 
-const glassCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.85)", borderRadius: "24px", padding: "20px 22px",
-  border: "1px solid rgba(255,255,255,0.9)", boxShadow: "0 8px 24px rgba(0,0,0,0.05)",
+const card: React.CSSProperties = { ...cardSurface, padding: "20px 22px" };
+
+const navButton: React.CSSProperties = {
+  fontSize: "14px", color: colors.inkSoft, background: colors.paper, padding: "8px 14px",
+  borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.08)}`, cursor: "pointer", fontFamily: fonts.body,
 };
 
 export default function FriendsPage() {
@@ -117,56 +121,54 @@ export default function FriendsPage() {
         .sort((a, b) => b.streak_count - a.streak_count)
     : [];
 
-  const bg: React.CSSProperties = {
-    minHeight: "100vh", background: "#FAF8F3", padding: "40px 20px 80px",
-    fontFamily: "system-ui, sans-serif", color: "#1c1917", position: "relative", overflow: "hidden",
-  };
+  const bg: React.CSSProperties = { ...pageBg, padding: "40px 20px 80px" };
 
   if (loading) return (
     <main style={bg}>
-      <div style={{ maxWidth: "540px", margin: "0 auto", textAlign: "center", paddingTop: "80px", color: "#a8a29e" }}>Loading…</div>
+      <div style={{ maxWidth: "540px", margin: "0 auto", textAlign: "center", paddingTop: "80px", color: colors.inkFaint }}>Loading…</div>
     </main>
   );
 
   return (
     <main style={bg}>
-      <div style={{ position: "fixed", top: "-15%", left: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(251,191,36,0.2)", filter: "blur(80px)", pointerEvents: "none" }} />
-      <div style={{ position: "fixed", bottom: "-15%", right: "-10%", width: "500px", height: "500px", borderRadius: "50%", background: "rgba(253,186,116,0.18)", filter: "blur(80px)", pointerEvents: "none" }} />
+      <div className="grain-overlay" />
 
       <div style={{ maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-          <button onClick={() => router.push("/")} style={{ color: "#a8a29e", background: "none", border: "none", fontSize: "14px", cursor: "pointer" }}>← Start Now</button>
-          <button onClick={() => router.push("/profile")} style={{ fontSize: "14px", color: "#78716c", background: "rgba(255,255,255,0.7)", padding: "8px 14px", borderRadius: "999px", border: "1px solid rgba(0,0,0,0.07)", cursor: "pointer" }}>Profile</button>
+          <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", fontFamily: fonts.body }}>← Start Now</button>
+          <button onClick={() => router.push("/profile")} style={navButton}>Profile</button>
         </div>
 
-        <h1 style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 6px", fontFamily: "Georgia, serif" }}>Your circle</h1>
-        <p style={{ color: "#78716c", margin: "0 0 28px", lineHeight: 1.6 }}>Friends ranked by streak. Stay consistent, climb the board.</p>
+        <h1 style={{ fontSize: "34px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 6px", fontFamily: fonts.display }}>Your circle</h1>
+        <p style={{ color: colors.inkSoft, margin: "0 0 28px", lineHeight: 1.6 }}>Friends ranked by streak. Stay consistent, climb the board.</p>
 
         {/* Leaderboard */}
-        <div style={{ ...glassCard, marginBottom: "16px" }}>
-          <p style={{ fontSize: "12px", color: "#a8a29e", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Streak leaderboard</p>
+        <div style={{ ...card, marginBottom: "16px" }}>
+          <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Streak leaderboard</p>
           {leaderboard.length === 0 ? (
-            <p style={{ color: "#a8a29e", fontSize: "14px", margin: 0, textAlign: "center", padding: "16px 0" }}>Add friends to see the leaderboard</p>
+            <p style={{ color: colors.inkFaint, fontSize: "14px", margin: 0, textAlign: "center", padding: "16px 0" }}>Add friends to see the leaderboard</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {leaderboard.map((person, i) => (
-                <div key={person.username} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "14px", background: person.isMe ? "rgba(245,158,11,0.08)" : "#fff", border: person.isMe ? "1px solid rgba(245,158,11,0.2)" : "1px solid rgba(0,0,0,0.06)" }}>
-                  <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? "#f59e0b" : "#a8a29e", width: "24px", textAlign: "center", fontFamily: "Georgia, serif" }}>
+                <div key={person.username} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: person.isMe ? tint(colors.pine, 0.08) : "#fff", border: person.isMe ? `1px solid ${tint(colors.pine, 0.22)}` : `1px solid ${tint(colors.ink, 0.06)}` }}>
+                  <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? colors.pineDeep : colors.inkFaint, width: "24px", textAlign: "center", fontFamily: fonts.display }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </div>
                   {person.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={person.avatar_url} alt={person.username} style={{ width: "34px", height: "34px", borderRadius: "10px", objectFit: "cover" }} />
                   ) : (
-                    <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>✦</div>
+                    <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <SparkMark size={16} stroke="#fff" dot="#fff" />
+                    </div>
                   )}
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: "15px" }}>{person.username}</span>
-                    {person.isMe && <span style={{ fontSize: "12px", color: "#d97706", marginLeft: "8px" }}>you</span>}
+                    {person.isMe && <span style={{ fontSize: "12px", color: colors.pineDeep, marginLeft: "8px" }}>you</span>}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, color: "#f59e0b", fontSize: "18px", fontFamily: "Georgia, serif" }}>{person.streak_count}</div>
-                    <div style={{ fontSize: "11px", color: "#a8a29e" }}>day streak</div>
+                    <div style={{ fontWeight: 700, color: colors.pineDeep, fontSize: "18px", fontFamily: fonts.display }}>{person.streak_count}</div>
+                    <div style={{ fontSize: "11px", color: colors.inkFaint }}>day streak</div>
                   </div>
                 </div>
               ))}
@@ -176,16 +178,16 @@ export default function FriendsPage() {
 
         {/* Pending requests */}
         {pending.length > 0 && (
-          <div style={{ ...glassCard, marginBottom: "16px" }}>
-            <p style={{ fontSize: "12px", color: "#a8a29e", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Friend requests</p>
+          <div style={{ ...card, marginBottom: "16px" }}>
+            <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Friend requests</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {pending.map((req) => (
-                <div key={req.requester_id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: "14px", background: "#fff", border: "1px solid rgba(0,0,0,0.06)" }}>
+                <div key={req.requester_id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: "#fff", border: `1px solid ${tint(colors.ink, 0.06)}` }}>
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600 }}>{req.username}</span>
-                    <span style={{ fontSize: "13px", color: "#a8a29e", marginLeft: "8px" }}>🔥 {req.streak_count} day streak</span>
+                    <span style={{ fontSize: "13px", color: colors.inkFaint, marginLeft: "8px" }}>🔥 {req.streak_count} day streak</span>
                   </div>
-                  <button onClick={() => handleAccept(req.requester_id)} style={{ padding: "8px 16px", borderRadius: "999px", border: "none", background: "#f59e0b", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Accept</button>
+                  <button onClick={() => handleAccept(req.requester_id)} style={{ padding: "8px 16px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Accept</button>
                 </div>
               ))}
             </div>
@@ -193,15 +195,15 @@ export default function FriendsPage() {
         )}
 
         {/* Add by username */}
-        <div style={{ ...glassCard, marginBottom: "16px" }}>
-          <p style={{ fontSize: "12px", color: "#a8a29e", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Add by username</p>
+        <div style={{ ...card, marginBottom: "16px" }}>
+          <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Add by username</p>
           <form onSubmit={handleSearch} style={{ display: "flex", gap: "8px" }}>
             <input
               value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)}
               placeholder="username" autoComplete="off"
-              style={{ flex: 1, padding: "12px 16px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.1)", fontSize: "15px", outline: "none", background: "#fff" }}
+              style={{ flex: 1, padding: "12px 16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "15px", outline: "none", background: "#fff", fontFamily: fonts.body }}
             />
-            <button type="submit" disabled={searching || !searchUsername.trim()} style={{ padding: "12px 18px", borderRadius: "12px", border: "none", background: searchUsername.trim() ? "#f59e0b" : "#e5e7eb", color: searchUsername.trim() ? "white" : "#9ca3af", fontWeight: 600, fontSize: "14px", cursor: searchUsername.trim() ? "pointer" : "not-allowed" }}>
+            <button type="submit" disabled={searching || !searchUsername.trim()} style={{ padding: "12px 18px", borderRadius: radius.sm, border: "none", background: searchUsername.trim() ? colors.pineDeep : "#e5e7eb", color: searchUsername.trim() ? "white" : "#9ca3af", fontWeight: 600, fontSize: "14px", cursor: searchUsername.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}>
               {searching ? "…" : "Add"}
             </button>
           </form>
@@ -211,10 +213,10 @@ export default function FriendsPage() {
         </div>
 
         {/* Invite link */}
-        <div style={glassCard}>
-          <p style={{ fontSize: "12px", color: "#a8a29e", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px", fontWeight: 600 }}>Invite via link</p>
-          <p style={{ fontSize: "13px", color: "#78716c", margin: "0 0 12px", lineHeight: 1.5 }}>Anyone who opens this link and signs in gets added to your circle automatically.</p>
-          <button onClick={copyInvite} style={{ width: "100%", padding: "12px", borderRadius: "999px", border: "none", background: copied ? "#f59e0b" : "rgba(245,158,11,0.1)", color: copied ? "white" : "#d97706", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+        <div style={card}>
+          <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px", fontWeight: 600 }}>Invite via link</p>
+          <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Anyone who opens this link and signs in gets added to your circle automatically.</p>
+          <button onClick={copyInvite} style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? "white" : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>
         </div>
