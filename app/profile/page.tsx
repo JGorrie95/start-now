@@ -128,13 +128,13 @@ export default function ProfilePage() {
             <input
               value={username} onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. jakob_g" autoComplete="off"
-              style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: "#fff", fontFamily: fonts.body }}
+              style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
             />
             <p style={{ fontSize: "12px", color: colors.inkFaint, margin: 0 }}>3–20 characters. Letters, numbers and _ only.</p>
-            {formError && <p style={{ color: "#ef4444", fontSize: "14px", margin: 0 }}>{formError}</p>}
+            {formError && <p style={{ color: colors.danger, fontSize: "14px", margin: 0 }}>{formError}</p>}
             <button
               type="submit" disabled={submitting || !username.trim()}
-              style={{ padding: "14px", borderRadius: radius.sm, border: "none", background: username.trim() ? colors.pineDeep : "#e5e7eb", color: username.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: username.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}
+              style={{ padding: "14px", borderRadius: radius.sm, border: "none", background: username.trim() ? colors.pineDeep : colors.disabledBg, color: username.trim() ? colors.onAccent : colors.disabledText, fontSize: "15px", fontWeight: 700, cursor: username.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}
             >
               {submitting ? "Creating…" : "Create profile →"}
             </button>
@@ -166,16 +166,16 @@ export default function ProfilePage() {
               <img src={profile.avatar_url} alt={profile.username} style={{ width: "84px", height: "84px", borderRadius: radius.md, objectFit: "cover", border: `2px solid ${tint(colors.pine, 0.3)}` }} />
             ) : (
               <div style={{ width: "84px", height: "84px", borderRadius: radius.md, background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <SparkMark size={36} stroke="#fff" dot="#fff" />
+                <SparkMark size={36} stroke={colors.onAccent} dot={colors.onAccent} />
               </div>
             )}
-            <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: "2px solid white", color: "white" }}>
+            <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: `2px solid ${colors.paper}`, color: colors.onAccent }}>
               {uploading ? "…" : "📷"}
             </div>
           </label>
           <h1 style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 4px", fontFamily: fonts.display }}>{profile?.username}</h1>
           <p style={{ color: colors.inkFaint, fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it"}</p>
-          {uploadError && <p style={{ color: "#ef4444", fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
+          {uploadError && <p style={{ color: colors.danger, fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
@@ -192,12 +192,12 @@ export default function ProfilePage() {
         <div style={card}>
           <p style={{ fontSize: "13px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px", fontWeight: 600 }}>Your invite link</p>
           <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Share this with friends so they can join your circle.</p>
-          <div style={{ background: "#fff", borderRadius: radius.sm, padding: "12px 14px", border: `1px solid ${tint(colors.ink, 0.07)}`, fontSize: "13px", color: colors.inkSoft, wordBreak: "break-all", marginBottom: "10px" }}>
+          <div style={{ background: colors.field, borderRadius: radius.sm, padding: "12px 14px", border: `1px solid ${tint(colors.ink, 0.07)}`, fontSize: "13px", color: colors.inkSoft, wordBreak: "break-all", marginBottom: "10px" }}>
             {inviteUrl}
           </div>
           <button
             onClick={copyInvite}
-            style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? "white" : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}
+            style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? colors.onAccent : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}
           >
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>

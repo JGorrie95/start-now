@@ -63,7 +63,7 @@ const navButton: CSSProperties = {
 
 const primaryCta: CSSProperties = {
   display: "inline-block", padding: "14px 24px", borderRadius: radius.sm, border: "none",
-  background: colors.pineDeep, color: "#fff", fontSize: "15px", fontWeight: 600,
+  background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 600,
   fontFamily: fonts.body, textDecoration: "none", cursor: "pointer",
   boxShadow: `0 10px 24px ${tint(colors.pineDeep, 0.28)}`,
 };
@@ -131,7 +131,7 @@ export default function HomePage() {
               onChange={(e) => setTask(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStart(); } }}
               placeholder="Laundry, emails, study, clean my room..."
-              style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.12)}`, fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: "#fff", color: colors.ink, marginBottom: "14px", boxSizing: "border-box", fontFamily: fonts.body }}
+              style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.12)}`, fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: colors.field, color: colors.ink, marginBottom: "14px", boxSizing: "border-box", fontFamily: fonts.body }}
             />
             <div style={{ display: "grid", gap: "8px", marginBottom: "18px" }}>
               {quickStarts.map(({ text, tone, Icon }) => {

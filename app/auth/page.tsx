@@ -82,12 +82,12 @@ export default function AuthPage() {
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com" required
-            style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: "#fff", fontFamily: fonts.body }}
+            style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
           />
-          {error && <p style={{ color: "#ef4444", fontSize: "14px", margin: 0 }}>{error}</p>}
+          {error && <p style={{ color: colors.danger, fontSize: "14px", margin: 0 }}>{error}</p>}
           <button
             type="submit" disabled={loading || !email.trim()}
-            style={{ padding: "14px", borderRadius: radius.sm, border: "none", background: email.trim() ? colors.pineDeep : "#e5e7eb", color: email.trim() ? "white" : "#9ca3af", fontSize: "15px", fontWeight: 700, cursor: email.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}
+            style={{ padding: "14px", borderRadius: radius.sm, border: "none", background: email.trim() ? colors.pineDeep : colors.disabledBg, color: email.trim() ? colors.onAccent : colors.disabledText, fontSize: "15px", fontWeight: 700, cursor: email.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}
           >
             {loading ? "Sending…" : "Send magic link →"}
           </button>

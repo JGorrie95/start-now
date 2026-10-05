@@ -40,7 +40,7 @@ const primaryCta: CSSProperties = {
   padding: "14px 24px",
   borderRadius: radius.sm,
   background: colors.pineDeep,
-  color: "#fff",
+  color: colors.onAccent,
   fontSize: "15px",
   fontWeight: 600,
   fontFamily: fonts.body,
@@ -218,7 +218,7 @@ export default function HowItWorksPage() {
           <div style={{ ...cardSurface, padding: "clamp(20px, 4vw, 32px)", maxWidth: "720px", marginTop: "24px", display: "grid", gap: "18px" }}>
             <div>
               <p style={{ ...eyebrow, margin: "0 0 8px 0" }}>You write</p>
-              <p style={{ margin: 0, padding: "14px 16px", background: "#fff", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", color: colors.ink }}>
+              <p style={{ margin: 0, padding: "14px 16px", background: colors.field, borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", color: colors.ink }}>
                 laundry
               </p>
             </div>

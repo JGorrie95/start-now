@@ -150,7 +150,7 @@ export default function FriendsPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {leaderboard.map((person, i) => (
-                <div key={person.username} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: person.isMe ? tint(colors.pine, 0.08) : "#fff", border: person.isMe ? `1px solid ${tint(colors.pine, 0.22)}` : `1px solid ${tint(colors.ink, 0.06)}` }}>
+                <div key={person.username} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: person.isMe ? tint(colors.pine, 0.08) : colors.field, border: person.isMe ? `1px solid ${tint(colors.pine, 0.22)}` : `1px solid ${tint(colors.ink, 0.06)}` }}>
                   <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? colors.pineDeep : colors.inkFaint, width: "24px", textAlign: "center", fontFamily: fonts.display }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </div>
@@ -159,7 +159,7 @@ export default function FriendsPage() {
                     <img src={person.avatar_url} alt={person.username} style={{ width: "34px", height: "34px", borderRadius: "10px", objectFit: "cover" }} />
                   ) : (
                     <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <SparkMark size={16} stroke="#fff" dot="#fff" />
+                      <SparkMark size={16} stroke={colors.onAccent} dot={colors.onAccent} />
                     </div>
                   )}
                   <div style={{ flex: 1 }}>
@@ -182,12 +182,12 @@ export default function FriendsPage() {
             <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 14px", fontWeight: 600 }}>Friend requests</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {pending.map((req) => (
-                <div key={req.requester_id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: "#fff", border: `1px solid ${tint(colors.ink, 0.06)}` }}>
+                <div key={req.requester_id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderRadius: radius.sm, background: colors.field, border: `1px solid ${tint(colors.ink, 0.06)}` }}>
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600 }}>{req.username}</span>
                     <span style={{ fontSize: "13px", color: colors.inkFaint, marginLeft: "8px" }}>🔥 {req.streak_count} day streak</span>
                   </div>
-                  <button onClick={() => handleAccept(req.requester_id)} style={{ padding: "8px 16px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Accept</button>
+                  <button onClick={() => handleAccept(req.requester_id)} style={{ padding: "8px 16px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Accept</button>
                 </div>
               ))}
             </div>
@@ -201,14 +201,14 @@ export default function FriendsPage() {
             <input
               value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)}
               placeholder="username" autoComplete="off"
-              style={{ flex: 1, padding: "12px 16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "15px", outline: "none", background: "#fff", fontFamily: fonts.body }}
+              style={{ flex: 1, padding: "12px 16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "15px", outline: "none", background: colors.field, fontFamily: fonts.body }}
             />
-            <button type="submit" disabled={searching || !searchUsername.trim()} style={{ padding: "12px 18px", borderRadius: radius.sm, border: "none", background: searchUsername.trim() ? colors.pineDeep : "#e5e7eb", color: searchUsername.trim() ? "white" : "#9ca3af", fontWeight: 600, fontSize: "14px", cursor: searchUsername.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}>
+            <button type="submit" disabled={searching || !searchUsername.trim()} style={{ padding: "12px 18px", borderRadius: radius.sm, border: "none", background: searchUsername.trim() ? colors.pineDeep : colors.disabledBg, color: searchUsername.trim() ? colors.onAccent : colors.disabledText, fontWeight: 600, fontSize: "14px", cursor: searchUsername.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}>
               {searching ? "…" : "Add"}
             </button>
           </form>
           {searchResult && (
-            <p style={{ fontSize: "13px", color: searchResult.isError ? "#ef4444" : "#16a34a", margin: "10px 0 0" }}>{searchResult.message}</p>
+            <p style={{ fontSize: "13px", color: searchResult.isError ? colors.danger : colors.success, margin: "10px 0 0" }}>{searchResult.message}</p>
           )}
         </div>
 
@@ -216,7 +216,7 @@ export default function FriendsPage() {
         <div style={card}>
           <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px", fontWeight: 600 }}>Invite via link</p>
           <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Anyone who opens this link and signs in gets added to your circle automatically.</p>
-          <button onClick={copyInvite} style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? "white" : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>
+          <button onClick={copyInvite} style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? colors.onAccent : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>
         </div>

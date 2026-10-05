@@ -1,9 +1,54 @@
+/* ---------- Colours: light by default, dark when the device is in dark mode ---------- */
+:root {
+  color-scheme: light dark;
+  --c-mist: #EAE3D2;
+  --c-paper: #FBFAF5;
+  --c-field: #FFFFFF;
+  --c-ink: #262421;
+  --c-ink-soft: #5B5750;
+  --c-ink-faint: #96938C;
+  --c-pine: #3D8B76;
+  --c-pine-deep: #2F6F5E;
+  --c-on-accent: #FFFFFF;
+  --c-slate: #6E7C93;
+  --c-heather: #8B7B96;
+  --c-disabled-bg: #E5E7EB;
+  --c-disabled-text: #9CA3AF;
+  --c-danger: #EF4444;
+  --c-success: #16A34A;
+  --c-shadow: #262421;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-mist: #171614;
+    --c-paper: #22201D;
+    --c-field: #1B1A17;
+    --c-ink: #ECE7DB;
+    --c-ink-soft: #BAB4A8;
+    --c-ink-faint: #8E8A81;
+    --c-pine: #5DB69B;
+    --c-pine-deep: #7CCBB2;
+    --c-on-accent: #0F1F1A;
+    --c-slate: #95A3BA;
+    --c-heather: #B5A5C0;
+    --c-disabled-bg: #2E2C28;
+    --c-disabled-text: #77736B;
+    --c-danger: #F87171;
+    --c-success: #4ADE80;
+    --c-shadow: #000000;
+  }
+  .grain-overlay { opacity: 0.05; }
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+body { background: var(--c-mist); color: var(--c-ink); }
+::placeholder { color: var(--c-ink-faint); opacity: 1; }
 button, textarea, input { font-family: inherit; }
 
 :focus-visible {
-  outline: 2px solid #3D8B76;
+  outline: 2px solid var(--c-pine);
   outline-offset: 2px;
   border-radius: 4px;
 }

@@ -270,7 +270,7 @@ function JustStartTimer() {
                   padding: "7px 16px", borderRadius: radius.full, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body,
                   border: `1px solid ${selected ? colors.pineDeep : tint(colors.ink, 0.14)}`,
                   background: selected ? colors.pineDeep : "transparent",
-                  color: selected ? "white" : colors.inkSoft,
+                  color: selected ? colors.onAccent : colors.inkSoft,
                 }}
               >
                 {m} min
@@ -278,7 +278,7 @@ function JustStartTimer() {
             );
           })}
         </div>
-        <button onClick={start} style={{ width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body }}>
+        <button onClick={start} style={{ width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body }}>
           ▶ Just Start — {minutes} minutes
         </button>
         <div style={{ marginTop: "10px", textAlign: "center" }}>{soundToggle}</div>
@@ -310,7 +310,7 @@ function JustStartTimer() {
           {paused ? "Paused. No rush. Come back when you're ready." : encouragement(progress)}
         </p>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
-          <button onClick={paused ? resume : pause} style={{ padding: "9px 22px", borderRadius: radius.full, border: `1.5px solid ${colors.pineDeep}`, background: paused ? colors.pineDeep : "transparent", color: paused ? "white" : colors.pineDeep, fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
+          <button onClick={paused ? resume : pause} style={{ padding: "9px 22px", borderRadius: radius.full, border: `1.5px solid ${colors.pineDeep}`, background: paused ? colors.pineDeep : "transparent", color: paused ? colors.onAccent : colors.pineDeep, fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
             {paused ? "Resume" : "Pause"}
           </button>
           <button onClick={reset} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>Stop early</button>
@@ -326,7 +326,7 @@ function JustStartTimer() {
       <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 16px", lineHeight: 1.5 }}>{minutes} minutes down. Keep the momentum or stop here. Either way, you showed up.</p>
       <div style={{ display: "flex", gap: "10px" }}>
         <button onClick={start} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Keep Going +{minutes}</button>
-        <button onClick={reset} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Stop, I&apos;m proud</button>
+        <button onClick={reset} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Stop, I&apos;m proud</button>
       </div>
     </div>
   );
@@ -415,8 +415,8 @@ function StuckContent() {
         <h1 style={{ fontSize: "clamp(38px, 7vw, 64px)", lineHeight: 0.97, letterSpacing: "-0.05em", margin: "0 0 16px 0", fontWeight: 700, fontFamily: fonts.display }}>Let&apos;s get unstuck.</h1>
         <p style={{ fontSize: "17px", color: colors.inkSoft, maxWidth: "480px", margin: "0 auto 32px", lineHeight: 1.65 }}>Write down what feels heavy right now. We&apos;ll turn it into one small, doable next step.</p>
         <div style={{ ...cardSurface, padding: "22px", textAlign: "left" }}>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="What's on your mind? e.g. laundry, emails, groceries..." style={{ width: "100%", minHeight: "160px", padding: "16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.12)}`, fontSize: "16px", lineHeight: 1.6, resize: "none", outline: "none", background: "#ffffff", color: colors.ink, boxSizing: "border-box", fontFamily: fonts.body }} />
-          <button onClick={handleSubmit} disabled={!text.trim()} style={{ marginTop: "14px", width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "15px", fontWeight: 700, cursor: text.trim() ? "pointer" : "not-allowed", boxSizing: "border-box", fontFamily: fonts.body, boxShadow: text.trim() ? `0 10px 24px ${tint(colors.pineDeep, 0.28)}` : "none" }}>Give Me My Next Step →</button>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="What's on your mind? e.g. laundry, emails, groceries..." style={{ width: "100%", minHeight: "160px", padding: "16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.12)}`, fontSize: "16px", lineHeight: 1.6, resize: "none", outline: "none", background: colors.field, color: colors.ink, boxSizing: "border-box", fontFamily: fonts.body }} />
+          <button onClick={handleSubmit} disabled={!text.trim()} style={{ marginTop: "14px", width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: text.trim() ? "pointer" : "not-allowed", boxSizing: "border-box", fontFamily: fonts.body, boxShadow: text.trim() ? `0 10px 24px ${tint(colors.pineDeep, 0.28)}` : "none" }}>Give Me My Next Step →</button>
 
           {displayed && (
             <>
@@ -475,7 +475,7 @@ function StuckContent() {
                 {doneState.status === "unauthenticated" && (
                   <div style={{ background: colors.paper, borderRadius: radius.sm, padding: "14px 16px", textAlign: "center", border: `1px solid ${tint(colors.ink, 0.07)}` }}>
                     <p style={{ fontSize: "14px", color: colors.inkSoft, margin: "0 0 10px" }}>Sign in to save your streak and compete with friends.</p>
-                    <button onClick={() => router.push("/auth")} style={{ padding: "10px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Sign in →</button>
+                    <button onClick={() => router.push("/auth")} style={{ padding: "10px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Sign in →</button>
                   </div>
                 )}
               </div>
