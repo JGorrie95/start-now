@@ -201,7 +201,7 @@ export default function FriendsPage() {
             <input
               value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)}
               placeholder="username" autoComplete="off"
-              style={{ flex: 1, padding: "12px 16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "15px", outline: "none", background: colors.field, fontFamily: fonts.body }}
+              className="text-field" style={{ flex: 1, padding: "12px 16px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "15px", outline: "none", background: colors.field, fontFamily: fonts.body }}
             />
             <button type="submit" disabled={searching || !searchUsername.trim()} style={{ padding: "12px 18px", borderRadius: radius.sm, border: "none", background: searchUsername.trim() ? colors.pineDeep : colors.disabledBg, color: searchUsername.trim() ? colors.onAccent : colors.disabledText, fontWeight: 600, fontSize: "14px", cursor: searchUsername.trim() ? "pointer" : "not-allowed", fontFamily: fonts.body }}>
               {searching ? "…" : "Add"}

@@ -4,6 +4,7 @@
   --c-mist: #EAE3D2;
   --c-paper: #FBFAF5;
   --c-field: #FFFFFF;
+  --c-field-border: #CDC5B4;
   --c-ink: #262421;
   --c-ink-soft: #5B5750;
   --c-ink-faint: #96938C;
@@ -23,7 +24,8 @@
   :root {
     --c-mist: #171614;
     --c-paper: #22201D;
-    --c-field: #1B1A17;
+    --c-field: #1A1916;
+    --c-field-border: #5A554C;
     --c-ink: #ECE7DB;
     --c-ink-soft: #BAB4A8;
     --c-ink-faint: #8E8A81;
@@ -45,6 +47,13 @@
 html, body { margin: 0; padding: 0; }
 body { background: var(--c-mist); color: var(--c-ink); }
 ::placeholder { color: var(--c-ink-faint); opacity: 1; }
+
+/* Text boxes: a clear outline, and a soft green glow once you tap in to type. */
+.text-field { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.text-field:focus {
+  border-color: var(--c-pine) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-pine) 22%, transparent);
+}
 button, textarea, input { font-family: inherit; }
 
 :focus-visible {

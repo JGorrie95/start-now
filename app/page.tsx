@@ -131,7 +131,7 @@ export default function HomePage() {
               onChange={(e) => setTask(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStart(); } }}
               placeholder="Laundry, emails, study, clean my room..."
-              style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.12)}`, fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: colors.field, color: colors.ink, marginBottom: "14px", boxSizing: "border-box", fontFamily: fonts.body }}
+              className="text-field" style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: colors.field, color: colors.ink, marginBottom: "14px", boxSizing: "border-box", fontFamily: fonts.body }}
             />
             <div style={{ display: "grid", gap: "8px", marginBottom: "18px" }}>
               {quickStarts.map(({ text, tone, Icon }) => {

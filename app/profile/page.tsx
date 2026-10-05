@@ -128,7 +128,7 @@ export default function ProfilePage() {
             <input
               value={username} onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. jakob_g" autoComplete="off"
-              style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
+              className="text-field" style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
             />
             <p style={{ fontSize: "12px", color: colors.inkFaint, margin: 0 }}>3–20 characters. Letters, numbers and _ only.</p>
             {formError && <p style={{ color: colors.danger, fontSize: "14px", margin: 0 }}>{formError}</p>}

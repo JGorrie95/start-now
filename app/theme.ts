@@ -7,6 +7,7 @@ export const colors = {
   mist: "var(--c-mist)",        // page background
   paper: "var(--c-paper)",      // cards
   field: "var(--c-field)",      // text boxes and inset panels
+  fieldBorder: "var(--c-field-border)", // outline around text boxes
   ink: "var(--c-ink)",          // main text
   inkSoft: "var(--c-ink-soft)",
   inkFaint: "var(--c-ink-faint)",

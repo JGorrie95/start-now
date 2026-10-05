@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
+import { colors, fonts, radius, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
 
 export default function AuthPage() {
@@ -82,7 +82,7 @@ export default function AuthPage() {
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com" required
-            style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.1)}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
+            className="text-field" style={{ padding: "14px 18px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "16px", outline: "none", background: colors.field, fontFamily: fonts.body }}
           />
           {error && <p style={{ color: colors.danger, fontSize: "14px", margin: 0 }}>{error}</p>}
           <button
