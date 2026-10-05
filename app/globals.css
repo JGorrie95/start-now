@@ -152,8 +152,8 @@ button, textarea, input { font-family: inherit; }
   pointer-events: none;
   z-index: 0;
 }
-.blob-a { top: -120px; right: -100px; width: 380px; height: 380px; background: rgba(61, 139, 118, 0.16); animation: drift-a 16s ease-in-out infinite; }
-.blob-b { bottom: -140px; left: -120px; width: 420px; height: 420px; background: rgba(139, 123, 150, 0.14); animation: drift-b 20s ease-in-out infinite; }
+.blob-a { top: -120px; right: -100px; width: 380px; height: 380px; background: color-mix(in srgb, var(--c-pine) 16%, transparent); animation: drift-a 16s ease-in-out infinite; }
+.blob-b { bottom: -140px; left: -120px; width: 420px; height: 420px; background: color-mix(in srgb, var(--c-heather) 14%, transparent); animation: drift-b 20s ease-in-out infinite; }
 
 /* Hover and press feedback. Only transform is changed, so inline styles are untouched. */
 .lift { transition: transform 0.25s ease; }
