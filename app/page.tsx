@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
@@ -116,9 +117,9 @@ export default function HomePage() {
             </p>
             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
               <a href="/stuck" style={primaryCta}>Help Me Begin →</a>
-              <a href="#how-it-works" style={{ display: "inline-block", padding: "14px 24px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.14)}`, background: "transparent", color: colors.inkSoft, fontSize: "15px", fontWeight: 500, textDecoration: "none", fontFamily: fonts.body }}>
+              <Link href="/how-it-works" style={{ display: "inline-block", padding: "14px 24px", borderRadius: radius.sm, border: `1px solid ${tint(colors.ink, 0.14)}`, background: "transparent", color: colors.inkSoft, fontSize: "15px", fontWeight: 500, textDecoration: "none", fontFamily: fonts.body }}>
                 See How It Works
-              </a>
+              </Link>
             </div>
           </div>
 

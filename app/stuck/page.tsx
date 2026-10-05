@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
@@ -132,7 +132,9 @@ function Confetti() {
   );
 }
 
-const JUST_START_SECONDS = 300;
+const DURATION_OPTIONS = [2, 5, 10] as const;
+
+type TimerStatus = "idle" | "running" | "paused" | "celebrating";
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -140,42 +142,159 @@ function formatTime(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function JustStartTimer() {
-  const [status, setStatus] = useState<"idle" | "running" | "celebrating">("idle");
-  const [secondsLeft, setSecondsLeft] = useState(JUST_START_SECONDS);
+function encouragement(progress: number) {
+  if (progress < 0.34) return "Just this. Nothing else.";
+  if (progress < 0.67) return "You're in it now.";
+  return "Almost there. Keep it gentle.";
+}
 
+function playChime(ctx: AudioContext | null) {
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const start = now + i * 0.2;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(0.1, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 1.4);
+    });
+  } catch {
+    // Sound is a nice-to-have. If the browser refuses, stay quiet.
+  }
+}
+
+function JustStartTimer() {
+  const [minutes, setMinutes] = useState<number>(5);
+  const [status, setStatus] = useState<TimerStatus>("idle");
+  const [secondsLeft, setSecondsLeft] = useState(5 * 60);
+  const [soundOn, setSoundOn] = useState(true);
+  const endAtRef = useRef(0);
+  const audioRef = useRef<AudioContext | null>(null);
+
+  const totalSeconds = minutes * 60;
+
+  // Count down against the clock, not by counting ticks. Phones slow timers
+  // down when the screen locks, so this keeps the time honest.
   useEffect(() => {
     if (status !== "running") return;
-    const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
+    const id = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(id);
+        setStatus("celebrating");
+        if (soundOn) playChime(audioRef.current);
+        if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
+      }
+    }, 250);
     return () => clearInterval(id);
-  }, [status]);
+  }, [status, soundOn]);
 
+  // Show the time left in the browser tab, so you can see it from another tab.
   useEffect(() => {
-    if (status === "running" && secondsLeft <= 0) setStatus("celebrating");
+    if (status !== "running") return;
+    const original = document.title;
+    document.title = `${formatTime(secondsLeft)} · Start Now`;
+    return () => {
+      document.title = original;
+    };
   }, [status, secondsLeft]);
 
-  const start = () => { setSecondsLeft(JUST_START_SECONDS); setStatus("running"); };
-  const stopEarly = () => setStatus("idle");
-  const keepGoing = () => { setSecondsLeft(JUST_START_SECONDS); setStatus("running"); };
-  const stopProud = () => setStatus("idle");
+  // Browsers only allow sound after a tap, so we get it ready on button presses.
+  const prepareAudio = () => {
+    if (audioRef.current) {
+      void audioRef.current.resume();
+      return;
+    }
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (Ctor) audioRef.current = new Ctor();
+  };
+
+  const chooseMinutes = (m: number) => {
+    setMinutes(m);
+    setSecondsLeft(m * 60);
+  };
+
+  const start = () => {
+    if (soundOn) prepareAudio();
+    endAtRef.current = Date.now() + totalSeconds * 1000;
+    setSecondsLeft(totalSeconds);
+    setStatus("running");
+  };
+
+  const pause = () => setStatus("paused");
+
+  const resume = () => {
+    endAtRef.current = Date.now() + secondsLeft * 1000;
+    setStatus("running");
+  };
+
+  const reset = () => {
+    setSecondsLeft(totalSeconds);
+    setStatus("idle");
+  };
+
+  const toggleSound = () => {
+    if (!soundOn) prepareAudio();
+    setSoundOn((s) => !s);
+  };
+
+  const soundToggle = (
+    <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>
+      {soundOn ? "Soft chime: on" : "Soft chime: off"}
+    </button>
+  );
 
   if (status === "idle") {
     return (
       <div style={{ marginTop: "12px" }}>
+        <div role="group" aria-label="Timer length" style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "12px" }}>
+          {DURATION_OPTIONS.map((m) => {
+            const selected = m === minutes;
+            return (
+              <button
+                key={m}
+                onClick={() => chooseMinutes(m)}
+                aria-pressed={selected}
+                style={{
+                  padding: "7px 16px", borderRadius: radius.full, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body,
+                  border: `1px solid ${selected ? colors.pineDeep : tint(colors.ink, 0.14)}`,
+                  background: selected ? colors.pineDeep : "transparent",
+                  color: selected ? "white" : colors.inkSoft,
+                }}
+              >
+                {m} min
+              </button>
+            );
+          })}
+        </div>
         <button onClick={start} style={{ width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body }}>
-          ▶ Just Start — 5 minutes
+          ▶ Just Start — {minutes} minutes
         </button>
+        <div style={{ marginTop: "10px", textAlign: "center" }}>{soundToggle}</div>
       </div>
     );
   }
 
-  if (status === "running") {
+  if (status === "running" || status === "paused") {
+    const paused = status === "paused";
     const ringRadius = 42;
     const circumference = 2 * Math.PI * ringRadius;
-    const offset = circumference * (secondsLeft / JUST_START_SECONDS);
+    const progress = 1 - secondsLeft / totalSeconds;
+    const offset = circumference * (secondsLeft / totalSeconds);
     return (
-      <div style={{ marginTop: "12px", background: colors.paper, border: `1px solid ${tint(colors.ink, 0.07)}`, borderRadius: radius.md, padding: "24px", textAlign: "center", animation: "calm-breathe 4s ease-in-out infinite" }}>
-        <svg width="96" height="96" viewBox="0 0 96 96" style={{ display: "block", margin: "0 auto 12px" }}>
+      <div style={{ marginTop: "12px", background: colors.paper, border: `1px solid ${tint(colors.ink, 0.07)}`, borderRadius: radius.md, padding: "24px", textAlign: "center", animation: paused ? "none" : "calm-breathe 4s ease-in-out infinite" }}>
+        <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true" style={{ display: "block", margin: "0 auto 12px", opacity: paused ? 0.55 : 1 }}>
           <circle cx="48" cy="48" r={ringRadius} fill="none" stroke={tint(colors.pine, 0.18)} strokeWidth="8" />
           <circle
             cx="48" cy="48" r={ringRadius} fill="none" stroke={colors.pineDeep} strokeWidth="8" strokeLinecap="round"
@@ -184,9 +303,19 @@ function JustStartTimer() {
             style={{ transition: "stroke-dashoffset 1s linear" }}
           />
         </svg>
-        <p style={{ fontSize: "32px", fontWeight: 700, fontFamily: fonts.display, fontVariantNumeric: "tabular-nums", margin: "0 0 6px" }}>{formatTime(Math.max(secondsLeft, 0))}</p>
-        <p style={{ fontSize: "14px", color: colors.inkSoft, margin: "0 0 14px" }}>Just this. Five minutes.</p>
-        <button onClick={stopEarly} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>Stop early</button>
+        <p role="timer" aria-label={`${formatTime(secondsLeft)} remaining`} style={{ fontSize: "32px", fontWeight: 700, fontFamily: fonts.display, fontVariantNumeric: "tabular-nums", margin: "0 0 6px" }}>
+          {formatTime(secondsLeft)}
+        </p>
+        <p style={{ fontSize: "14px", color: colors.inkSoft, margin: "0 0 16px" }}>
+          {paused ? "Paused. No rush. Come back when you're ready." : encouragement(progress)}
+        </p>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
+          <button onClick={paused ? resume : pause} style={{ padding: "9px 22px", borderRadius: radius.full, border: `1.5px solid ${colors.pineDeep}`, background: paused ? colors.pineDeep : "transparent", color: paused ? "white" : colors.pineDeep, fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
+            {paused ? "Resume" : "Pause"}
+          </button>
+          <button onClick={reset} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>Stop early</button>
+        </div>
+        <div style={{ marginTop: "14px" }}>{soundToggle}</div>
       </div>
     );
   }
@@ -194,10 +323,10 @@ function JustStartTimer() {
   return (
     <div style={{ marginTop: "12px", background: `linear-gradient(135deg, ${tint(colors.pine, 0.16)}, ${tint(colors.pine, 0.05)})`, borderRadius: radius.sm, padding: "20px 16px", textAlign: "center", border: `1px solid ${tint(colors.pine, 0.3)}`, animation: "streak-pop 0.5s ease-out" }}>
       <p style={{ fontSize: "22px", fontWeight: 700, color: colors.pineDeep, margin: "0 0 6px", fontFamily: fonts.display }}>You started. That&apos;s the win.</p>
-      <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 16px", lineHeight: 1.5 }}>Five minutes down. Keep the momentum or stop here — either way, you showed up.</p>
+      <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 16px", lineHeight: 1.5 }}>{minutes} minutes down. Keep the momentum or stop here. Either way, you showed up.</p>
       <div style={{ display: "flex", gap: "10px" }}>
-        <button onClick={keepGoing} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Keep Going +5</button>
-        <button onClick={stopProud} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Stop, I&apos;m proud</button>
+        <button onClick={start} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Keep Going +{minutes}</button>
+        <button onClick={reset} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: "white", fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Stop, I&apos;m proud</button>
       </div>
     </div>
   );
