@@ -261,6 +261,6 @@ html[data-app="native"] .back-button {
   backdrop-filter: saturate(180%) blur(20px);
 }
 /* Leave room under it so it never covers the page title. */
-html[data-app="native"] main:has(.back-button) {
+html[data-app="native"] main:has(.back-button:not(.web-only)) {
   padding-top: calc(env(safe-area-inset-top) + 64px) !important;
 }
