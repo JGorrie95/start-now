@@ -90,7 +90,7 @@ export default function HomePage() {
       <div className="blob blob-a" aria-hidden="true" />
       <div className="blob blob-b" aria-hidden="true" />
       <section style={{ maxWidth: "1080px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <div className="enter" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "36px", flexWrap: "wrap", gap: "12px" }}>
+        <div className="enter web-only" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "36px", flexWrap: "wrap", gap: "12px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "17px", fontWeight: 600, letterSpacing: "-0.01em" }}>
             <SparkMark size={32} />
             Start Now
@@ -107,8 +107,16 @@ export default function HomePage() {
           </div>
         </div>
 
+        <div className="app-only enter" style={{ marginBottom: "22px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.01em" }}>
+            <SparkMark size={30} />
+            Start Now
+          </div>
+          <p style={{ margin: "10px 0 0", fontSize: "15px", color: colors.inkSoft, lineHeight: 1.5 }}>From stuck to started.</p>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "40px", alignItems: "start" }}>
-          <div>
+          <div className="web-only">
             <p className="enter" style={{ ["--delay" as string]: "0.1s", fontSize: "13px", color: colors.inkFaint, marginBottom: "14px", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>
               From stuck to started
             </p>
@@ -177,7 +185,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div id="how-it-works" style={{ marginTop: "96px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+        <div id="how-it-works" className="web-only" style={{ marginTop: "96px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
           {steps.map((step, i) => (
             <Reveal key={step.title} delay={i * 0.15}>
             <div className="lift" style={{ ...cardSurface, padding: "24px 22px", position: "relative", height: "100%" }}>

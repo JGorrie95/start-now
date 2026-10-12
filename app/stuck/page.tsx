@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
+import { successHaptic } from "@/app/native";
 
 type StepVariant = { step: string; reason: string };
 type Category = { test: (lower: string) => boolean; options: [StepVariant, StepVariant]; smaller: StepVariant };
@@ -193,6 +194,7 @@ function JustStartTimer() {
         setStatus("celebrating");
         if (soundOn) playChime(audioRef.current);
         if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
+        successHaptic();
       }
     }, 250);
     return () => clearInterval(id);
@@ -399,6 +401,7 @@ function StuckContent() {
       setDoneState({ status: "alreadyDone", streak: res.streak ?? 0 });
     } else if ("streak" in res && res.streak !== undefined) {
       setDoneState({ status: "success", streak: res.streak });
+      successHaptic();
     } else {
       setDoneState({ status: "idle" });
     }

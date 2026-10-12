@@ -134,7 +134,7 @@ export default function FriendsPage() {
       <div className="grain-overlay" />
 
       <div style={{ maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+        <div className="web-only" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
           <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", fontFamily: fonts.body }}>← Start Now</button>
           <button onClick={() => router.push("/profile")} style={navButton}>Profile</button>
         </div>

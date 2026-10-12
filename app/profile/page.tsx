@@ -120,7 +120,7 @@ export default function ProfilePage() {
     <main style={bg}>
       <div className="grain-overlay" />
       <div style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", marginBottom: "32px", fontFamily: fonts.body }}>← Start Now</button>
+        <button className="web-only" onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", marginBottom: "32px", fontFamily: fonts.body }}>← Start Now</button>
         <h1 style={{ fontSize: "36px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 8px", fontFamily: fonts.display }}>Pick your username</h1>
         <p style={{ color: colors.inkSoft, marginBottom: "28px", lineHeight: 1.6 }}>This is how your friends will find you and see your streak.</p>
         <div style={card}>
@@ -151,9 +151,9 @@ export default function ProfilePage() {
       <div className="grain-overlay" />
       <div style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
-          <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", fontFamily: fonts.body }}>← Start Now</button>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button onClick={() => router.push("/friends")} style={navButton}>Friends</button>
+          <button className="web-only" onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", fontFamily: fonts.body }}>← Start Now</button>
+          <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
+            <button className="web-only" onClick={() => router.push("/friends")} style={navButton}>Friends</button>
             <button onClick={handleSignOut} style={navButton}>Sign out</button>
           </div>
         </div>
