@@ -3,6 +3,7 @@ import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
+import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic } from "@/app/native";
 
@@ -411,7 +412,9 @@ function StuckContent() {
     <main style={{ ...pageBg, padding: "48px 24px 80px" }}>
       <div className="grain-overlay" />
       <section style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-        <button onClick={() => router.push("/")} style={{ display: "block", width: "fit-content", margin: "0 auto 24px", color: colors.inkFaint, fontSize: "14px", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>← Start Now</button>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
+          <BackButton />
+        </div>
         <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 20px" }}>
           <SparkMark size={40} />
         </div>

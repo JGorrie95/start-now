@@ -1,12 +1,11 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, radius, cardSurface, pageBg } from "@/app/theme";
+import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 
 export default function AuthPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,7 +69,7 @@ export default function AuthPage() {
     <main style={bg}>
       <div className="grain-overlay" />
       <div style={card}>
-        <button onClick={() => router.push("/")} style={{ color: colors.inkFaint, background: "none", border: "none", fontSize: "14px", cursor: "pointer", marginBottom: "20px", fontFamily: fonts.body }}>← Start Now</button>
+        <BackButton style={{ marginBottom: "20px" }} />
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
           <SparkMark size={32} />
         </div>

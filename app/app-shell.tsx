@@ -44,7 +44,7 @@ const tabs = [
 ];
 
 // Screens where you are focused on one thing, so the bar stays out of the way.
-const focusScreens = ["/stuck", "/auth", "/invite"];
+const focusScreens = ["/stuck", "/invite"];
 
 export function AppShell() {
   const pathname = usePathname() ?? "/";
@@ -65,7 +65,9 @@ export function AppShell() {
   return (
     <nav className="app-tabbar" aria-label="Main">
       {tabs.map(({ href, label, Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        // Signing in happens when you tap Friends or Profile, so it counts as the Profile tab.
+        const active =
+          href === "/" ? pathname === "/" : pathname.startsWith(href) || (href === "/profile" && pathname.startsWith("/auth"));
         return (
           <Link key={href} href={href} className="app-tab" aria-current={active ? "page" : undefined}>
             <span className="app-tab-pill">
