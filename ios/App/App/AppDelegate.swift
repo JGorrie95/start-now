@@ -73,8 +73,14 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     @objc func start(_ call: CAPPluginCall) {
-        guard #available(iOS 16.2, *), ActivityAuthorizationInfo().areActivitiesEnabled else {
-            call.resolve(["started": false])
+        guard #available(iOS 16.2, *) else {
+            print("[StartNow] LiveTimer: this iPhone is older than iOS 16.2")
+            call.resolve(["started": false, "reason": "old iOS"])
+            return
+        }
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("[StartNow] LiveTimer: Live Activities are switched off for this app")
+            call.resolve(["started": false, "reason": "Live Activities switched off"])
             return
         }
         let step = call.getString("step") ?? "Your one step"
@@ -88,8 +94,10 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
                 _ = try Activity.request(
                     attributes: StartNowTimerAttributes(step: step, totalSeconds: totalSeconds),
                     content: ActivityContent(state: state, staleDate: state.endsAt.addingTimeInterval(120)))
+                print("[StartNow] LiveTimer: started on the lock screen")
                 call.resolve(["started": true])
             } catch {
+                print("[StartNow] LiveTimer: iOS refused: \(error)")
                 call.reject("Could not start the lock screen timer: \(error.localizedDescription)")
             }
         }
@@ -151,5 +159,6 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(LiveTimerPlugin())
+        print("[StartNow] LiveTimer plugin registered")
     }
 }
