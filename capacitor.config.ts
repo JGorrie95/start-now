@@ -13,7 +13,9 @@ const config: CapacitorConfig = {
     allowNavigation: ["startnowadhd.app", "*.supabase.co"],
   },
   ios: {
-    contentInset: "automatic",
+    // The website handles the notch and home bar itself (app mode in globals.css),
+    // so the page can fill the whole screen and match light or dark mode edge to edge.
+    contentInset: "never",
     backgroundColor: "#EAE3D2",
   },
 };
