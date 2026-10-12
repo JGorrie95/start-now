@@ -63,7 +63,18 @@ function liveTimerPlugin(): LiveTimer | undefined {
 
 export const lockScreenTimer = {
   start(step: string, totalSeconds: number, endsAt: number) {
-    void liveTimerPlugin()?.start({ step, totalSeconds, endsAt })?.catch(() => {});
+    if (!isNativeApp()) return;
+    // These [StartNow] lines show up in Xcode's console, to help check the iPhone app.
+    const plugin = liveTimerPlugin();
+    if (!plugin) {
+      console.log("[StartNow] lock screen timer: the LiveTimer part is missing from this app build");
+      return;
+    }
+    console.log("[StartNow] lock screen timer: asking the iPhone to start it");
+    plugin
+      .start({ step, totalSeconds, endsAt })
+      .then((reply) => console.log(`[StartNow] lock screen timer reply: ${JSON.stringify(reply)}`))
+      .catch((error: unknown) => console.log(`[StartNow] lock screen timer error: ${error instanceof Error ? error.message : String(error)}`));
   },
   pause(secondsLeft: number) {
     void liveTimerPlugin()?.pause({ secondsLeft })?.catch(() => {});
