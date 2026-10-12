@@ -247,3 +247,20 @@ html[data-app="native"] .app-tabbar { display: flex; justify-content: space-arou
 .app-tab[aria-current="page"] .app-tab-pill {
   background: color-mix(in srgb, var(--c-pine) 22%, transparent);
 }
+
+/* In the app, the Back button floats in the top-left corner like most iPhone apps,
+   with a frosted-glass look so it stays readable when the page scrolls under it. */
+html[data-app="native"] .back-button {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 6px);
+  left: 16px;
+  z-index: 60;
+  margin: 0 !important;
+  background: color-mix(in srgb, var(--c-paper) 72%, transparent) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+/* Leave room under it so it never covers the page title. */
+html[data-app="native"] main:has(.back-button) {
+  padding-top: calc(env(safe-area-inset-top) + 64px) !important;
+}

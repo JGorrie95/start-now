@@ -11,7 +11,7 @@ export function BackButton({ className, style }: { className?: string; style?: C
     <button
       type="button"
       onClick={() => router.push("/")}
-      className={`press${className ? ` ${className}` : ""}`}
+      className={`press back-button${className ? ` ${className}` : ""}`}
       aria-label="Back to the home screen"
       style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
