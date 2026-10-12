@@ -5,7 +5,7 @@ import { completeStep } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
-import { successHaptic } from "@/app/native";
+import { successHaptic, lockScreenTimer } from "@/app/native";
 
 type StepVariant = { step: string; reason: string };
 type Category = { test: (lower: string) => boolean; options: [StepVariant, StepVariant]; smaller: StepVariant };
@@ -173,7 +173,7 @@ function playChime(ctx: AudioContext | null) {
   }
 }
 
-function JustStartTimer() {
+function JustStartTimer({ step }: { step: string }) {
   const [minutes, setMinutes] = useState<number>(5);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [secondsLeft, setSecondsLeft] = useState(5 * 60);
@@ -196,6 +196,7 @@ function JustStartTimer() {
         if (soundOn) playChime(audioRef.current);
         if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
         successHaptic();
+        lockScreenTimer.end(true);
       }
     }, 250);
     return () => clearInterval(id);
@@ -233,19 +234,28 @@ function JustStartTimer() {
     endAtRef.current = Date.now() + totalSeconds * 1000;
     setSecondsLeft(totalSeconds);
     setStatus("running");
+    lockScreenTimer.start(step, totalSeconds, endAtRef.current);
   };
 
-  const pause = () => setStatus("paused");
+  const pause = () => {
+    setStatus("paused");
+    lockScreenTimer.pause(secondsLeft);
+  };
 
   const resume = () => {
     endAtRef.current = Date.now() + secondsLeft * 1000;
     setStatus("running");
+    lockScreenTimer.resume(endAtRef.current);
   };
 
   const reset = () => {
     setSecondsLeft(totalSeconds);
     setStatus("idle");
+    lockScreenTimer.end();
   };
+
+  // Leaving this screen stops the timer here, so take it off the lock screen too.
+  useEffect(() => () => lockScreenTimer.end(), []);
 
   const toggleSound = () => {
     if (!soundOn) prepareAudio();
@@ -442,7 +452,7 @@ function StuckContent() {
                 )}
               </div>
 
-              <JustStartTimer key={displayed.step} />
+              <JustStartTimer key={displayed.step} step={displayed.step} />
 
               <div style={{ marginTop: "12px" }}>
                 {doneState.status === "idle" && (
