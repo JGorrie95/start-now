@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import ActivityKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -40,5 +41,115 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                                           sessionRole: connectingSceneSession.role)
         config.delegateClass = SceneDelegate.self
         return config
+    }
+}
+
+// MARK: - Start Now: lock screen & Dynamic Island timer (Live Activity)
+
+// The data a running timer shows. The widget extension (StartNowTimer) has an
+// identical copy of this struct; keep the two the same.
+@available(iOS 16.2, *)
+struct StartNowTimerAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var endsAt: Date
+        var pausedSecondsLeft: Int?
+        var done: Bool
+    }
+    var step: String
+    var totalSeconds: Int
+}
+
+// Lets the website start, pause, resume and end the timer on the lock screen.
+// From the website it is called as window.Capacitor.Plugins.LiveTimer.start({...}).
+@objc(LiveTimerPlugin)
+public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LiveTimerPlugin"
+    public let jsName = "LiveTimer"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pause", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resume", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "end", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func start(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *), ActivityAuthorizationInfo().areActivitiesEnabled else {
+            call.resolve(["started": false])
+            return
+        }
+        let step = call.getString("step") ?? "Your one step"
+        let totalSeconds = call.getInt("totalSeconds") ?? 300
+        let endsAtMs = call.getDouble("endsAt") ?? (Date().timeIntervalSince1970 + Double(totalSeconds)) * 1000
+        let state = StartNowTimerAttributes.ContentState(
+            endsAt: Date(timeIntervalSince1970: endsAtMs / 1000), pausedSecondsLeft: nil, done: false)
+        Task {
+            await LiveTimerPlugin.endAll(dismissNow: true)
+            do {
+                _ = try Activity.request(
+                    attributes: StartNowTimerAttributes(step: step, totalSeconds: totalSeconds),
+                    content: ActivityContent(state: state, staleDate: state.endsAt.addingTimeInterval(120)))
+                call.resolve(["started": true])
+            } catch {
+                call.reject("Could not start the lock screen timer: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    @objc func pause(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else { call.resolve(); return }
+        let secondsLeft = call.getInt("secondsLeft") ?? 0
+        Task {
+            for activity in Activity<StartNowTimerAttributes>.activities {
+                var state = activity.content.state
+                state.pausedSecondsLeft = secondsLeft
+                await activity.update(ActivityContent(state: state, staleDate: nil))
+            }
+            call.resolve()
+        }
+    }
+
+    @objc func resume(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else { call.resolve(); return }
+        let endsAtMs = call.getDouble("endsAt") ?? Date().timeIntervalSince1970 * 1000
+        let endsAt = Date(timeIntervalSince1970: endsAtMs / 1000)
+        Task {
+            for activity in Activity<StartNowTimerAttributes>.activities {
+                var state = activity.content.state
+                state.endsAt = endsAt
+                state.pausedSecondsLeft = nil
+                await activity.update(ActivityContent(state: state, staleDate: endsAt.addingTimeInterval(120)))
+            }
+            call.resolve()
+        }
+    }
+
+    // done: true shows "You started." for a moment before it disappears.
+    @objc func end(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else { call.resolve(); return }
+        let done = call.getBool("done") ?? false
+        Task {
+            await LiveTimerPlugin.endAll(dismissNow: !done)
+            call.resolve()
+        }
+    }
+
+    @available(iOS 16.2, *)
+    static func endAll(dismissNow: Bool) async {
+        for activity in Activity<StartNowTimerAttributes>.activities {
+            var state = activity.content.state
+            state.pausedSecondsLeft = 0
+            state.done = !dismissNow
+            await activity.end(
+                ActivityContent(state: state, staleDate: nil),
+                dismissalPolicy: dismissNow ? .immediate : .after(Date().addingTimeInterval(30)))
+        }
+    }
+}
+
+// The app's main screen. Same as Capacitor's, plus our LiveTimer plugin.
+// Main.storyboard points at this class.
+class MainViewController: CAPBridgeViewController {
+    override open func capacitorDidLoad() {
+        bridge?.registerPluginInstance(LiveTimerPlugin())
     }
 }
