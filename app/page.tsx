@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,48 +7,18 @@ import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
 import { Reveal } from "@/app/reveal";
+import { moods, quickStarts } from "@/app/moods";
 
-function ListIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
-      <line x1="3" y1="5" x2="15" y2="5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="3" y1="9" x2="12" y2="9" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="3" y1="13" x2="9" y2="13" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
+// Today's date for the header, e.g. "SATURDAY, OCTOBER 17", worked out on the phone in its own
+// time zone. The server leaves it blank so the page never shows the server's date.
+const noSubscribe = () => () => {};
+function useToday() {
+  return useSyncExternalStore(
+    noSubscribe,
+    () => new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }).toUpperCase(),
+    () => "",
   );
 }
-
-function TargetIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
-      <circle cx="9" cy="9" r="6" stroke={color} strokeWidth="1.6" />
-      <circle cx="9" cy="9" r="1.8" fill={color} />
-    </svg>
-  );
-}
-
-function ScatterIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
-      <path d="M3 13 L7 8 L10 11 L15 4" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 3" />
-    </svg>
-  );
-}
-
-function CloudIcon({ color }: { color: string }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ flexShrink: 0 }}>
-      <path d="M5.5 12.5a3 3 0 0 1-.5-5.96A4 4 0 0 1 12.9 6.1 3.2 3.2 0 0 1 12.5 12.5h-7z" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-const quickStarts = [
-  { text: "I have too many things to do", tone: colors.slate, Icon: ListIcon },
-  { text: "I need to start one task", tone: colors.pineDeep, Icon: TargetIcon },
-  { text: "I got distracted again", tone: colors.heather, Icon: ScatterIcon },
-  { text: "I feel overwhelmed", tone: colors.ink, Icon: CloudIcon },
-];
 
 const steps = [
   { n: "1", title: "Dump the chaos", body: "Write whatever is spinning in your head. It does not need to be organised.", tone: tint(colors.ink, 0.45) },
@@ -72,12 +42,29 @@ const primaryCta: CSSProperties = {
 export default function HomePage() {
   const [task, setTask] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [streak, setStreak] = useState<{ count: number; doneToday: boolean } | null>(null);
+  const today = useToday();
   const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setIsLoggedIn(!!user));
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("streak_count, last_completed_date").eq("id", user.id).single();
+      if (!data) return;
+      // Same date rules as completeStep in actions.ts.
+      const todayStr = new Date().toISOString().split("T")[0];
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+      const doneToday = data.last_completed_date === todayStr;
+      const alive = doneToday || data.last_completed_date === yesterdayStr;
+      setStreak({ count: alive ? data.streak_count ?? 0 : 0, doneToday });
+    });
   }, []);
+
+  const startWith = (text: string) => router.push(`/stuck?task=${encodeURIComponent(text)}`);
 
   const handleStart = () => {
     if (!task.trim()) return;
@@ -107,12 +94,16 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="app-only enter" style={{ marginBottom: "22px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.01em" }}>
-            <SparkMark size={30} />
-            Start Now
+        <div className="app-only enter" style={{ marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px" }}>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft, minHeight: "18px" }}>{today}</div>
+              <h1 style={{ margin: "2px 0 0", fontSize: "34px", lineHeight: 1.1, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: fonts.body }}>Start Now</h1>
+            </div>
+            <Link href="/profile" aria-label="Your profile" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#2F6F5E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <SparkMark size={24} stroke="#FFFFFF" dot="#9FD9C6" />
+            </Link>
           </div>
-          <p style={{ margin: "10px 0 0", fontSize: "15px", color: colors.inkSoft, lineHeight: 1.5 }}>From stuck to started.</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "40px", alignItems: "start" }}>
@@ -135,53 +126,71 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="enter" style={{ ...cardSurface, padding: "24px", ["--delay" as string]: "0.45s" }}>
-            <p style={{ fontSize: "13px", color: colors.inkFaint, marginBottom: "6px", letterSpacing: "0.05em", textTransform: "uppercase" }}>Right now</p>
-            <h2 style={{ fontFamily: fonts.display, fontSize: "24px", margin: "0 0 18px 0", letterSpacing: "-0.01em", fontWeight: 500 }}>What&apos;s on your mind?</h2>
-            <textarea
-              value={task}
-              onChange={(e) => setTask(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStart(); } }}
-              placeholder="Laundry, emails, study, clean my room..."
-              className="text-field" style={{ width: "100%", minHeight: "100px", padding: "16px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "16px", lineHeight: 1.5, resize: "none", outline: "none", background: colors.field, color: colors.ink, marginBottom: "14px", boxSizing: "border-box", fontFamily: fonts.body }}
-            />
-            <div style={{ display: "grid", gap: "8px", marginBottom: "18px" }}>
-              {quickStarts.map(({ text, tone, Icon }, i) => {
-                const selected = task === text;
-                return (
-                  <button
-                    key={text}
-                    onClick={() => setTask(text)}
-                    className="enter nudge"
-                    style={{
-                      ["--delay" as string]: `${0.7 + i * 0.1}s`,
-                      display: "flex", alignItems: "center", gap: "10px",
-                      padding: "12px 14px", borderRadius: radius.sm,
-                      background: tint(tone, selected ? 0.34 : 0.22),
-                      border: `1px solid ${tint(tone, 0.45)}`,
-                      borderLeft: selected ? `4px solid ${tone}` : `1px solid ${tint(tone, 0.45)}`,
-                      fontSize: "14px", color: colors.ink, cursor: "pointer", textAlign: "left",
-                      fontFamily: fonts.body, fontWeight: selected ? 600 : 400,
-                    }}
-                  >
-                    <Icon color={tone} />
-                    {text}
-                  </button>
-                );
-              })}
+          <div className="enter" style={{ ["--delay" as string]: "0.3s" }}>
+            {/* What's on your mind: the main green card */}
+            <div style={{ position: "relative", overflow: "hidden", borderRadius: "28px", padding: "22px", background: moods.lagoon.background, color: "#FFFFFF", boxShadow: "0 18px 40px rgba(31, 90, 75, 0.3)" }}>
+              <div aria-hidden="true" style={{ position: "absolute", top: "-60px", right: "-50px", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.10)" }} />
+              <div aria-hidden="true" style={{ position: "absolute", bottom: "-90px", left: "110px", width: "200px", height: "200px", borderRadius: "50%", background: "rgba(159, 217, 198, 0.12)" }} />
+              <div style={{ position: "relative" }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255, 255, 255, 0.88)" }}>RIGHT NOW</div>
+                <label htmlFor="mind" style={{ display: "block", margin: "6px 0 16px", fontFamily: fonts.display, fontSize: "28px", lineHeight: 1.15, fontWeight: 500 }}>What&apos;s on your mind?</label>
+                <textarea
+                  id="mind"
+                  value={task}
+                  onChange={(e) => setTask(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleStart(); } }}
+                  placeholder="Laundry, emails, study, clean my room..."
+                  className="glass-field"
+                  rows={2}
+                  style={{ width: "100%", minHeight: "76px", padding: "14px 16px", borderRadius: "16px", fontSize: "16px", lineHeight: 1.5, resize: "none", boxSizing: "border-box", fontFamily: fonts.body, display: "block" }}
+                />
+                <button
+                  onClick={handleStart}
+                  disabled={!task.trim()}
+                  className="solid-press"
+                  style={{ marginTop: "12px", width: "100%", height: "52px", borderRadius: "16px", border: "none", background: "#FFFFFF", color: moods.lagoon.deep, fontSize: "16px", fontWeight: 700, fontFamily: fonts.body, cursor: task.trim() ? "pointer" : "not-allowed", opacity: task.trim() ? 1 : 0.75 }}
+                >
+                  Get My Next Step →
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleStart}
-              disabled={!task.trim()}
-              className="press"
-              style={{
-                ...primaryCta, display: "block", width: "100%", boxSizing: "border-box", textAlign: "center",
-                boxShadow: task.trim() ? primaryCta.boxShadow : "none",
-                cursor: task.trim() ? "pointer" : "not-allowed",
-              }}
-            >
-              Get My Next Step →
-            </button>
+
+            {/* Quick starts: one tap and you're on your way */}
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", margin: "24px 4px 12px" }}>
+              <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 800, letterSpacing: "-0.01em", fontFamily: fonts.body }}>Quick starts</h2>
+              <span style={{ fontSize: "14px", color: colors.inkSoft }}>Tap the one that fits</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+              {quickStarts.map(({ text, label, mood, Icon }) => (
+                <button
+                  key={text}
+                  onClick={() => startWith(text)}
+                  className="tile"
+                  style={{ height: "104px", borderRadius: "24px", border: "none", padding: "14px 16px", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start", background: moods[mood].background, color: "#FFFFFF", fontFamily: fonts.body, cursor: "pointer" }}
+                >
+                  <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon />
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.25 }}>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Streak, once you're signed in */}
+            {isLoggedIn && streak && (
+              <Link href="/profile" style={{ marginTop: "12px", minHeight: "60px", boxSizing: "border-box", borderRadius: "20px", background: colors.paper, border: `1px solid ${tint(colors.ink, 0.06)}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: colors.ink }}>
+                <span style={{ width: "36px", height: "36px", borderRadius: "50%", background: tint(colors.pine, 0.14), display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "15px", color: colors.pineDeep, flexShrink: 0 }}>{streak.count}</span>
+                <span style={{ flexGrow: 1 }}>
+                  <span style={{ display: "block", fontSize: "15px", fontWeight: 700 }}>
+                    {streak.count === 0 ? "Start a streak today" : `${streak.count} day streak`}
+                  </span>
+                  <span style={{ display: "block", fontSize: "13px", color: colors.inkSoft }}>
+                    {streak.doneToday ? "Done for today. Nice work." : streak.count === 0 ? "One small step is all it takes" : `One small step today makes it ${streak.count + 1}`}
+                  </span>
+                </span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: colors.inkSoft, flexShrink: 0 }}><path d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            )}
           </div>
         </div>
 

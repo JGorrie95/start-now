@@ -2,10 +2,11 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
-import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
+import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer } from "@/app/native";
+import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
 
 type StepVariant = { step: string; reason: string };
 type Category = { test: (lower: string) => boolean; options: [StepVariant, StepVariant]; smaller: StepVariant };
@@ -107,10 +108,10 @@ type DoneState =
   | { status: "unauthenticated" };
 
 function Confetti() {
-  const pieceColors = [colors.pineDeep, colors.pine, colors.slate, colors.heather, colors.ink, colors.paper];
+  const pieceColors = ["#FBFAF5", "#9FD9C6", "#B5A5C0", "#E59A5C", "#8FB3E3", "#F2C66D"];
   const pieces = Array.from({ length: 44 });
   return (
-    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 60, overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 90, overflow: "hidden" }}>
       {pieces.map((_, i) => {
         const left = Math.random() * 100;
         const delay = Math.random() * 0.4;
@@ -173,7 +174,29 @@ function playChime(ctx: AudioContext | null) {
   }
 }
 
-function JustStartTimer({ step }: { step: string }) {
+const WHITE = "#FFFFFF";
+const glassPill: React.CSSProperties = {
+  height: "44px", padding: "0 16px", borderRadius: "22px", fontSize: "14px", fontWeight: 600,
+  fontFamily: fonts.body, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px",
+};
+const bigWhiteButton = (deep: string): React.CSSProperties => ({
+  flex: 1, height: "56px", borderRadius: "18px", border: "none", background: WHITE, color: deep,
+  fontSize: "16px", fontWeight: 700, fontFamily: fonts.body, cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+});
+const bigGlassButton: React.CSSProperties = {
+  flex: 1, height: "56px", borderRadius: "18px", fontSize: "16px", fontWeight: 700, fontFamily: fonts.body,
+  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+};
+const eyebrowOnColour: React.CSSProperties = { fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255, 255, 255, 0.88)" };
+
+function CheckIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+  );
+}
+
+function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDone: () => void }) {
   const [minutes, setMinutes] = useState<number>(5);
   const [status, setStatus] = useState<TimerStatus>("idle");
   const [secondsLeft, setSecondsLeft] = useState(5 * 60);
@@ -182,6 +205,7 @@ function JustStartTimer({ step }: { step: string }) {
   const audioRef = useRef<AudioContext | null>(null);
 
   const totalSeconds = minutes * 60;
+  const colour = moods[mood];
 
   // Count down against the clock, not by counting ticks. Phones slow timers
   // down when the screen locks, so this keeps the time honest.
@@ -254,6 +278,14 @@ function JustStartTimer({ step }: { step: string }) {
     lockScreenTimer.end();
   };
 
+  // "I'm done": close the timer and count the step as done.
+  const finish = () => {
+    lockScreenTimer.end(true);
+    setSecondsLeft(totalSeconds);
+    setStatus("idle");
+    onDone();
+  };
+
   // Leaving this screen stops the timer here, so take it off the lock screen too.
   useEffect(() => () => lockScreenTimer.end(), []);
 
@@ -262,16 +294,11 @@ function JustStartTimer({ step }: { step: string }) {
     setSoundOn((s) => !s);
   };
 
-  const soundToggle = (
-    <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>
-      {soundOn ? "Soft chime: on" : "Soft chime: off"}
-    </button>
-  );
-
   if (status === "idle") {
     return (
-      <div style={{ marginTop: "12px" }}>
-        <div role="group" aria-label="Timer length" style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "12px" }}>
+      <div style={{ marginTop: "24px" }}>
+        <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft }}>JUST START</div>
+        <div role="group" aria-label="Timer length" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "8px", marginTop: "10px" }}>
           {DURATION_OPTIONS.map((m) => {
             const selected = m === minutes;
             return (
@@ -279,11 +306,12 @@ function JustStartTimer({ step }: { step: string }) {
                 key={m}
                 onClick={() => chooseMinutes(m)}
                 aria-pressed={selected}
+                className="solid-press"
                 style={{
-                  padding: "7px 16px", borderRadius: radius.full, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body,
-                  border: `1px solid ${selected ? colors.pineDeep : tint(colors.ink, 0.14)}`,
-                  background: selected ? colors.pineDeep : "transparent",
-                  color: selected ? colors.onAccent : colors.inkSoft,
+                  height: "44px", borderRadius: "14px", fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body,
+                  border: selected ? "none" : `1px solid ${tint(colors.ink, 0.14)}`,
+                  background: selected ? colors.ink : colors.paper,
+                  color: selected ? colors.mist : colors.inkSoft,
                 }}
               >
                 {m} min
@@ -291,74 +319,117 @@ function JustStartTimer({ step }: { step: string }) {
             );
           })}
         </div>
-        <button onClick={start} style={{ width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body }}>
-          ▶ Just Start — {minutes} minutes
+        <button onClick={start} className="solid-press" style={{ marginTop: "14px", width: "100%", height: "58px", borderRadius: "18px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "17px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body, display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", boxShadow: `0 10px 24px ${tint(colors.pineDeep, 0.28)}` }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor" /></svg>
+          Start the {minutes} minute timer
         </button>
-        <div style={{ marginTop: "10px", textAlign: "center" }}>{soundToggle}</div>
+        <div style={{ marginTop: "10px", textAlign: "center" }}>
+          <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: colors.inkSoft, fontSize: "14px", cursor: "pointer", padding: "10px", fontFamily: fonts.body }}>
+            {soundOn ? "Soft chime when time is up: on" : "Soft chime when time is up: off"}
+          </button>
+        </div>
       </div>
     );
   }
 
+  const soundToggleOnColour = (
+    <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: "rgba(255, 255, 255, 0.88)", fontSize: "14px", cursor: "pointer", padding: "10px", fontFamily: fonts.body }}>
+      {soundOn ? "Soft chime: on" : "Soft chime: off"}
+    </button>
+  );
+
   if (status === "running" || status === "paused") {
     const paused = status === "paused";
-    const ringRadius = 42;
+    const ringRadius = 110;
     const circumference = 2 * Math.PI * ringRadius;
     const progress = 1 - secondsLeft / totalSeconds;
     const offset = circumference * (secondsLeft / totalSeconds);
     return (
-      <div style={{ marginTop: "12px", background: colors.paper, border: `1px solid ${tint(colors.ink, 0.07)}`, borderRadius: radius.md, padding: "24px", textAlign: "center", animation: paused ? "none" : "calm-breathe 4s ease-in-out infinite" }}>
-        <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true" style={{ display: "block", margin: "0 auto 12px", opacity: paused ? 0.55 : 1 }}>
-          <circle cx="48" cy="48" r={ringRadius} fill="none" stroke={tint(colors.pine, 0.18)} strokeWidth="8" />
-          <circle
-            cx="48" cy="48" r={ringRadius} fill="none" stroke={colors.pineDeep} strokeWidth="8" strokeLinecap="round"
-            strokeDasharray={circumference} strokeDashoffset={offset}
-            transform="rotate(-90 48 48)"
-            style={{ transition: "stroke-dashoffset 1s linear" }}
-          />
-        </svg>
-        <p role="timer" aria-label={`${formatTime(secondsLeft)} remaining`} style={{ fontSize: "32px", fontWeight: 700, fontFamily: fonts.display, fontVariantNumeric: "tabular-nums", margin: "0 0 6px" }}>
-          {formatTime(secondsLeft)}
-        </p>
-        <p style={{ fontSize: "14px", color: colors.inkSoft, margin: "0 0 16px" }}>
-          {paused ? "Paused. No rush. Come back when you're ready." : encouragement(progress)}
-        </p>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "18px", flexWrap: "wrap" }}>
-          <button onClick={paused ? resume : pause} style={{ padding: "9px 22px", borderRadius: radius.full, border: `1.5px solid ${colors.pineDeep}`, background: paused ? colors.pineDeep : "transparent", color: paused ? colors.onAccent : colors.pineDeep, fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
-            {paused ? "Resume" : "Pause"}
+      <div className="fullscreen" role="dialog" aria-label="Timer" style={{ background: colour.background }}>
+        <div style={{ maxWidth: "440px", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <button onClick={reset} className="glass-button" style={{ ...glassPill, alignSelf: "flex-start" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            Stop early
           </button>
-          <button onClick={reset} style={{ background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body }}>Stop early</button>
+
+          <div style={{ ...eyebrowOnColour, marginTop: "28px" }}>JUST START · {minutes} MINUTES</div>
+
+          <div style={{ position: "relative", width: "248px", height: "248px", marginTop: "20px", animation: paused ? "none" : "calm-breathe 4s ease-in-out infinite" }}>
+            <svg width="248" height="248" viewBox="0 0 248 248" aria-hidden="true" style={{ opacity: paused ? 0.6 : 1 }}>
+              <circle cx="124" cy="124" r={ringRadius} fill="none" stroke="rgba(255, 255, 255, 0.18)" strokeWidth="14" />
+              <circle
+                cx="124" cy="124" r={ringRadius} fill="none" stroke={WHITE} strokeWidth="14" strokeLinecap="round"
+                strokeDasharray={circumference} strokeDashoffset={offset}
+                transform="rotate(-90 124 124)"
+                style={{ transition: "stroke-dashoffset 1s linear" }}
+              />
+            </svg>
+            <div role="timer" aria-label={`${formatTime(secondsLeft)} remaining`} style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: "64px", fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", fontFamily: fonts.body }}>{formatTime(secondsLeft)}</span>
+              <span style={{ marginTop: "6px", fontSize: "15px", color: "rgba(255, 255, 255, 0.88)" }}>{paused ? "paused" : "left"}</span>
+            </div>
+          </div>
+
+          <p style={{ margin: "14px 0 0", fontSize: "15px", color: "rgba(255, 255, 255, 0.9)" }}>
+            {paused ? "No rush. Come back when you're ready." : encouragement(progress)}
+          </p>
+          <p style={{ margin: "18px 8px 0", textAlign: "center", fontSize: "19px", lineHeight: 1.4, fontWeight: 700 }}>{step}</p>
+
+          <div style={{ display: "flex", gap: "10px", width: "100%", marginTop: "28px" }}>
+            <button onClick={paused ? resume : pause} className="glass-button" style={bigGlassButton}>
+              {paused ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z" fill="currentColor" /></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor" /><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor" /></svg>
+              )}
+              {paused ? "Resume" : "Pause"}
+            </button>
+            <button onClick={finish} className="solid-press" style={bigWhiteButton(colour.deep)}>
+              <CheckIcon color={colour.deep} />
+              I&apos;m done
+            </button>
+          </div>
+
+          <div className="app-only" style={{ marginTop: "18px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "16px", background: "rgba(0, 0, 0, 0.18)", fontSize: "14px", lineHeight: 1.4, color: "rgba(255, 255, 255, 0.92)" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              You can lock your phone. The timer keeps going.
+            </div>
+          </div>
+          <div style={{ marginTop: "8px" }}>{soundToggleOnColour}</div>
         </div>
-        <div style={{ marginTop: "14px" }}>{soundToggle}</div>
       </div>
     );
   }
 
+  // Time is up.
   return (
-    <div style={{ marginTop: "12px", background: `linear-gradient(135deg, ${tint(colors.pine, 0.16)}, ${tint(colors.pine, 0.05)})`, borderRadius: radius.sm, padding: "20px 16px", textAlign: "center", border: `1px solid ${tint(colors.pine, 0.3)}`, animation: "streak-pop 0.5s ease-out" }}>
-      <p style={{ fontSize: "22px", fontWeight: 700, color: colors.pineDeep, margin: "0 0 6px", fontFamily: fonts.display }}>You started. That&apos;s the win.</p>
-      <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 16px", lineHeight: 1.5 }}>{minutes} minutes down. Keep the momentum or stop here. Either way, you showed up.</p>
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button onClick={start} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Keep Going +{minutes}</button>
-        <button onClick={reset} style={{ flex: 1, padding: "12px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Stop, I&apos;m proud</button>
+    <div className="fullscreen" role="dialog" aria-label="Time is up" style={{ background: moods.lagoon.background }}>
+      <div style={{ maxWidth: "440px", minHeight: "100%", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", animation: "streak-pop 0.5s ease-out" }}>
+        <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 40px rgba(0, 0, 0, 0.2)" }}>
+          <CheckIcon size={42} color={moods.lagoon.deep} />
+        </div>
+        <h2 style={{ margin: "26px 0 8px", fontFamily: fonts.display, fontSize: "40px", lineHeight: 1.08, fontWeight: 500, letterSpacing: "-0.02em" }}>Time&apos;s up. You started.</h2>
+        <p style={{ margin: 0, fontSize: "17px", lineHeight: 1.5, color: "rgba(255, 255, 255, 0.92)" }}>{minutes} minutes down. Keep going or stop here. Either way, you showed up.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", marginTop: "30px" }}>
+          <button onClick={start} className="solid-press" style={{ ...bigWhiteButton(moods.lagoon.deep), flex: "none" }}>Keep going +{minutes} min</button>
+          <button onClick={finish} className="glass-button" style={{ ...bigGlassButton, flex: "none" }}>
+            <CheckIcon />
+            Mark it done
+          </button>
+          <button onClick={reset} style={{ background: "none", border: "none", color: "rgba(255, 255, 255, 0.88)", fontSize: "15px", cursor: "pointer", padding: "12px", fontFamily: fonts.body }}>Stop here</button>
+        </div>
       </div>
     </div>
   );
 }
-
-const secondaryButton: React.CSSProperties = {
-  padding: "14px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent",
-  color: colors.pineDeep, fontSize: "14px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body, flex: 1,
-};
-
-const tertiaryLink: React.CSSProperties = {
-  background: "none", border: "none", color: colors.inkFaint, fontSize: "13px", cursor: "pointer", padding: 0, fontFamily: fonts.body,
-};
 
 function StuckContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const taskParam = searchParams.get("task") ?? "";
   const [text, setText] = useState(taskParam);
+  const [sourceText, setSourceText] = useState(taskParam);
   const [category, setCategory] = useState<Category | null>(null);
   const [mainVariant, setMainVariant] = useState<0 | 1>(0);
   const [shrunk, setShrunk] = useState(false);
@@ -370,6 +441,9 @@ function StuckContent() {
   }, [taskParam]);
 
   const displayed = category ? (shrunk ? category.smaller : category.options[mainVariant]) : null;
+  const mood = moodFor(sourceText);
+  const colour = moods[mood];
+  const quick = quickStartFor(sourceText);
 
   const resetStepState = () => {
     setDoneState({ status: "idle" });
@@ -378,6 +452,7 @@ function StuckContent() {
 
   const handleSubmit = () => {
     if (!text.trim()) return;
+    setSourceText(text);
     setCategory(matchCategory(text));
     setMainVariant(0);
     setShrunk(false);
@@ -395,12 +470,17 @@ function StuckContent() {
     resetStepState();
   };
 
-  const doOneMoreThing = () => {
-    setText("");
+  const writeSomethingElse = () => {
     setCategory(null);
     setMainVariant(0);
     setShrunk(false);
     resetStepState();
+  };
+
+  const doOneMoreThing = () => {
+    setText("");
+    setSourceText("");
+    writeSomethingElse();
   };
 
   const handleMarkDone = async () => {
@@ -419,86 +499,117 @@ function StuckContent() {
   };
 
   return (
-    <main style={{ ...pageBg, padding: "48px 24px 80px" }}>
+    <main className={displayed ? "bleed" : undefined} style={{ ...pageBg, padding: "40px 20px 80px" }}>
       <div className="grain-overlay" />
-      <section style={{ maxWidth: "640px", margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
-          <BackButton />
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 20px" }}>
-          <SparkMark size={40} />
-        </div>
-        <h1 style={{ fontSize: "clamp(38px, 7vw, 64px)", lineHeight: 0.97, letterSpacing: "-0.05em", margin: "0 0 16px 0", fontWeight: 700, fontFamily: fonts.display }}>Let&apos;s get unstuck.</h1>
-        <p style={{ fontSize: "17px", color: colors.inkSoft, maxWidth: "480px", margin: "0 auto 32px", lineHeight: 1.65 }}>Write down what feels heavy right now. We&apos;ll turn it into one small, doable next step.</p>
-        <div style={{ ...cardSurface, padding: "22px", textAlign: "left" }}>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="What's on your mind? e.g. laundry, emails, groceries..." className="text-field" style={{ width: "100%", minHeight: "160px", padding: "16px", borderRadius: radius.sm, border: `1.5px solid ${colors.fieldBorder}`, fontSize: "16px", lineHeight: 1.6, resize: "none", outline: "none", background: colors.field, color: colors.ink, boxSizing: "border-box", fontFamily: fonts.body }} />
-          <button onClick={handleSubmit} disabled={!text.trim()} style={{ marginTop: "14px", width: "100%", padding: "15px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: text.trim() ? "pointer" : "not-allowed", boxSizing: "border-box", fontFamily: fonts.body, boxShadow: text.trim() ? `0 10px 24px ${tint(colors.pineDeep, 0.28)}` : "none" }}>Give Me My Next Step →</button>
+      <section style={{ maxWidth: "640px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+        {!displayed ? (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
+              <BackButton />
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", margin: "0 auto 20px" }}>
+              <SparkMark size={40} />
+            </div>
+            <h1 style={{ fontSize: "clamp(36px, 7vw, 56px)", lineHeight: 1.02, letterSpacing: "-0.03em", margin: "0 0 14px 0", fontWeight: 500, fontFamily: fonts.display }}>Let&apos;s get unstuck.</h1>
+            <p style={{ fontSize: "17px", color: colors.inkSoft, maxWidth: "480px", margin: "0 auto 28px", lineHeight: 1.6 }}>Write down what feels heavy right now. We&apos;ll turn it into one small, doable next step.</p>
+            <div style={{ position: "relative", overflow: "hidden", borderRadius: "28px", padding: "22px", background: moods.lagoon.background, textAlign: "left", boxShadow: "0 18px 40px rgba(31, 90, 75, 0.3)" }}>
+              <label htmlFor="heavy" style={{ ...eyebrowOnColour, display: "block", marginBottom: "10px" }}>WHAT FEELS HEAVY?</label>
+              <textarea id="heavy" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }} placeholder="e.g. laundry, emails, groceries..." className="glass-field" style={{ width: "100%", minHeight: "130px", padding: "16px", borderRadius: "16px", fontSize: "16px", lineHeight: 1.6, resize: "none", boxSizing: "border-box", fontFamily: fonts.body, display: "block" }} />
+              <button onClick={handleSubmit} disabled={!text.trim()} className="solid-press" style={{ marginTop: "12px", width: "100%", height: "52px", borderRadius: "16px", border: "none", background: WHITE, color: moods.lagoon.deep, fontSize: "16px", fontWeight: 700, cursor: text.trim() ? "pointer" : "not-allowed", opacity: text.trim() ? 1 : 0.75, boxSizing: "border-box", fontFamily: fonts.body }}>Give Me My Next Step →</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="back-row">
+              <BackButton />
+            </div>
 
-          {displayed && (
-            <>
-              <div style={{ marginTop: "18px", background: tint(colors.pine, 0.08), borderRadius: radius.md, padding: "20px 22px", border: `1px solid ${tint(colors.pine, 0.22)}` }}>
-                <p style={{ fontSize: "13px", color: colors.pineDeep, marginBottom: "8px", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: 600 }}>Your next step</p>
-                <p style={{ fontSize: "18px", fontWeight: 600, color: colors.ink, margin: "0 0 14px 0", lineHeight: 1.45, fontFamily: fonts.display }}>{displayed.step}</p>
-                <p style={{ fontSize: "14px", color: colors.inkSoft, margin: 0, lineHeight: 1.6 }}>{displayed.reason}</p>
-              </div>
-
-              <div style={{ marginTop: "10px", textAlign: "center" }}>
-                <button onClick={tryDifferentStep} style={tertiaryLink}>Try a different step</button>
-                {!shrunk && (
-                  <>
-                    <span style={{ color: colors.inkFaint, fontSize: "13px", margin: "0 8px" }}>·</span>
-                    <button onClick={stillTooBig} style={tertiaryLink}>Still feels too big?</button>
-                  </>
-                )}
-              </div>
-
-              <JustStartTimer key={displayed.step} step={displayed.step} />
-
-              <div style={{ marginTop: "12px" }}>
-                {doneState.status === "idle" && (
-                  <button onClick={handleMarkDone} style={{ width: "100%", padding: "14px", borderRadius: radius.sm, border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "15px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body }}>
-                    ✓ I did it! Mark as done
-                  </button>
-                )}
-                {doneState.status === "loading" && (
-                  <p style={{ textAlign: "center", color: colors.inkFaint, fontSize: "14px", margin: 0, padding: "14px 0" }}>Saving…</p>
-                )}
-                {doneState.status === "success" && (
-                  <>
-                    <Confetti />
-                    {postDoneChoice === "none" ? (
-                      <div style={{ background: `linear-gradient(135deg, ${tint(colors.pine, 0.16)}, ${tint(colors.pine, 0.05)})`, borderRadius: radius.sm, padding: "20px 16px", textAlign: "center", border: `1px solid ${tint(colors.pine, 0.3)}`, animation: "streak-pop 0.5s ease-out" }}>
-                        <p style={{ fontSize: "22px", fontWeight: 700, color: colors.pineDeep, margin: "0 0 6px", fontFamily: fonts.display }}>That&apos;s done. Nice work.</p>
-                        <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 16px", lineHeight: 1.5 }}>However small it felt, you did the thing you said you&apos;d do.</p>
-                        <div style={{ display: "flex", gap: "10px" }}>
-                          <button onClick={doOneMoreThing} style={secondaryButton}>Do one more thing</button>
-                          <button onClick={() => setPostDoneChoice("stopped")} style={secondaryButton}>Stop here — I&apos;m good</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ background: tint(colors.pine, 0.08), borderRadius: radius.sm, padding: "18px 16px", textAlign: "center", border: `1px solid ${tint(colors.pine, 0.22)}` }}>
-                        <p style={{ fontSize: "15px", color: colors.pineDeep, margin: 0, fontFamily: fonts.display, fontWeight: 600 }}>Good. Rest counts too.</p>
-                      </div>
-                    )}
-                  </>
-                )}
-                {doneState.status === "alreadyDone" && (
-                  <div style={{ background: tint(colors.pine, 0.08), borderRadius: radius.sm, padding: "14px 16px", textAlign: "center", border: `1px solid ${tint(colors.pine, 0.22)}` }}>
-                    <p style={{ fontSize: "15px", fontWeight: 600, color: colors.pineDeep, margin: "0 0 2px" }}>✓ Already marked for today</p>
-                    <p style={{ fontSize: "13px", color: colors.inkSoft, margin: 0 }}>🔥 {doneState.streak} day streak — come back tomorrow!</p>
+            {/* The step, on the colour of the feeling you picked */}
+            <div className="mood-panel" style={{ position: "relative", overflow: "hidden", borderRadius: "28px", padding: "26px 22px 22px", background: colour.background, color: WHITE }}>
+              <div aria-hidden="true" style={{ position: "absolute", top: "30px", right: "-70px", width: "220px", height: "220px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.08)" }} />
+              <div style={{ position: "relative" }}>
+                {quick && (
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", height: "30px", padding: "0 12px", borderRadius: "15px", background: "rgba(255, 255, 255, 0.18)", fontSize: "13px", fontWeight: 600, marginBottom: "18px" }}>
+                    <quick.Icon size={14} />
+                    {quick.label}
                   </div>
                 )}
-                {doneState.status === "unauthenticated" && (
-                  <div style={{ background: colors.paper, borderRadius: radius.sm, padding: "14px 16px", textAlign: "center", border: `1px solid ${tint(colors.ink, 0.07)}` }}>
-                    <p style={{ fontSize: "14px", color: colors.inkSoft, margin: "0 0 10px" }}>Sign in to save your streak and compete with friends.</p>
-                    <button onClick={() => router.push("/auth")} style={{ padding: "10px 20px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>Sign in →</button>
-                  </div>
-                )}
+                <div style={eyebrowOnColour}>{shrunk ? "AN EVEN SMALLER STEP" : "YOUR NEXT STEP"}</div>
+                <h1 style={{ margin: "8px 0 12px", fontSize: "28px", lineHeight: 1.18, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: fonts.body }}>{displayed.step}</h1>
+                <p style={{ margin: 0, fontSize: "16px", lineHeight: 1.55, color: "rgba(255, 255, 255, 0.92)" }}>{displayed.reason}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "20px" }}>
+                  <button onClick={tryDifferentStep} className="glass-button" style={glassPill}>Try a different step</button>
+                  {!shrunk && <button onClick={stillTooBig} className="glass-button" style={glassPill}>Still too big?</button>}
+                </div>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+            <JustStartTimer key={displayed.step} step={displayed.step} mood={mood} onDone={handleMarkDone} />
+
+            <div style={{ marginTop: "12px" }}>
+              {(doneState.status === "idle" || doneState.status === "success") && (
+                <button onClick={handleMarkDone} className="solid-press" style={{ width: "100%", height: "52px", borderRadius: "18px", border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "16px", fontWeight: 700, cursor: "pointer", boxSizing: "border-box", fontFamily: fonts.body, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <CheckIcon />
+                  I did it! Mark as done
+                </button>
+              )}
+              {doneState.status === "loading" && (
+                <p style={{ textAlign: "center", color: colors.inkSoft, fontSize: "15px", margin: 0, padding: "14px 0" }}>Saving…</p>
+              )}
+              {doneState.status === "alreadyDone" && (
+                <div style={{ ...cardSurface, padding: "16px 18px", textAlign: "center" }}>
+                  <p style={{ fontSize: "16px", fontWeight: 700, color: colors.pineDeep, margin: "0 0 4px" }}>Already marked for today</p>
+                  <p style={{ fontSize: "14px", color: colors.inkSoft, margin: 0 }}>{doneState.streak} day streak. Come back tomorrow to make it {doneState.streak + 1}.</p>
+                </div>
+              )}
+              {doneState.status === "unauthenticated" && (
+                <div style={{ ...cardSurface, padding: "18px", textAlign: "center" }}>
+                  <p style={{ fontSize: "15px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Nice work. Sign in to save your streak and cheer on friends.</p>
+                  <button onClick={() => router.push("/auth")} className="solid-press" style={{ height: "48px", padding: "0 22px", borderRadius: "16px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Sign in →</button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: "6px" }}>
+              <button onClick={writeSomethingElse} style={{ background: "none", border: "none", color: colors.inkSoft, fontSize: "14px", cursor: "pointer", padding: "12px", fontFamily: fonts.body, textDecoration: "underline", textUnderlineOffset: "3px" }}>Write something else</button>
+            </div>
+          </>
+        )}
       </section>
+
+      {/* You did it: a full-screen celebration */}
+      {doneState.status === "success" && (
+        <div className="fullscreen" role="dialog" aria-label="You did it" style={{ background: moods.lagoon.background }}>
+          {postDoneChoice === "none" && <Confetti />}
+          <div style={{ maxWidth: "440px", minHeight: "100%", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", animation: "streak-pop 0.5s ease-out" }}>
+            <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: WHITE, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 16px 40px rgba(0, 0, 0, 0.2)" }}>
+              <CheckIcon size={46} color={moods.lagoon.deep} />
+            </div>
+            {postDoneChoice === "none" ? (
+              <>
+                <h2 style={{ margin: "28px 0 8px", fontFamily: fonts.display, fontSize: "44px", lineHeight: 1.05, fontWeight: 500, letterSpacing: "-0.02em" }}>You started.</h2>
+                <p style={{ margin: 0, fontSize: "18px", lineHeight: 1.5, color: "rgba(255, 255, 255, 0.92)" }}>That&apos;s the win. However small it felt, you did the thing you said you&apos;d do.</p>
+                <div style={{ marginTop: "26px", padding: "14px 20px", borderRadius: "22px", background: "rgba(255, 255, 255, 0.14)", border: "1px solid rgba(255, 255, 255, 0.24)" }}>
+                  <span style={{ display: "block", fontSize: "22px", fontWeight: 800, lineHeight: 1.15 }}>{doneState.streak} day streak</span>
+                  <span style={{ display: "block", fontSize: "14px", color: "rgba(255, 255, 255, 0.9)" }}>{doneState.streak === 1 ? "Day one. Every streak starts here." : "Keep it going tomorrow."}</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", marginTop: "32px" }}>
+                  <button onClick={doOneMoreThing} className="solid-press" style={{ ...bigWhiteButton(moods.lagoon.deep), flex: "none" }}>Do one more thing →</button>
+                  <button onClick={() => setPostDoneChoice("stopped")} className="glass-button" style={{ ...bigGlassButton, flex: "none" }}>Stop here, I&apos;m good</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 style={{ margin: "28px 0 8px", fontFamily: fonts.display, fontSize: "40px", lineHeight: 1.08, fontWeight: 500, letterSpacing: "-0.02em" }}>Good. Rest counts too.</h2>
+                <p style={{ margin: 0, fontSize: "18px", lineHeight: 1.5, color: "rgba(255, 255, 255, 0.92)" }}>See you tomorrow for day {doneState.streak + 1}.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", marginTop: "32px" }}>
+                  <button onClick={() => router.push("/")} className="solid-press" style={{ ...bigWhiteButton(moods.lagoon.deep), flex: "none" }}>Back to home</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

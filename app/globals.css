@@ -203,50 +203,48 @@ html[data-app="native"] main {
   padding-bottom: calc(env(safe-area-inset-bottom) + 96px) !important;
 }
 
-/* Bottom button bar. */
+/* Bottom button bar: a floating frosted-glass pill, like Apple's newest apps. */
 .app-tabbar {
   display: none;
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 20px;
+  right: 20px;
+  bottom: calc(env(safe-area-inset-bottom) + 6px);
   z-index: 50;
-  padding: 6px 12px calc(env(safe-area-inset-bottom) + 4px);
-  background: color-mix(in srgb, var(--c-paper) 84%, transparent);
+  height: 64px;
+  box-sizing: border-box;
+  padding: 6px;
+  gap: 4px;
+  border-radius: 32px;
+  background: color-mix(in srgb, var(--c-paper) 78%, transparent);
   -webkit-backdrop-filter: saturate(180%) blur(22px);
   backdrop-filter: saturate(180%) blur(22px);
-  border-top: 1px solid color-mix(in srgb, var(--c-ink) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-paper) 70%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--c-shadow) 18%, transparent);
 }
-html[data-app="native"] .app-tabbar { display: flex; justify-content: space-around; }
+html[data-app="native"] .app-tabbar { display: flex; }
 
 .app-tab {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px 0 2px;
-  text-decoration: none;
-  color: var(--c-ink-faint);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: color 0.2s ease, transform 0.15s ease;
-}
-.app-tab:active { transform: scale(0.93); }
-.app-tab[aria-current="page"] { color: var(--c-pine-deep); }
-.app-tab-pill {
-  width: 56px;
-  height: 30px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  transition: background 0.25s ease;
+  gap: 2px;
+  border-radius: 26px;
+  text-decoration: none;
+  color: var(--c-ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: color 0.2s ease, background 0.25s ease, transform 0.15s ease;
 }
-.app-tab[aria-current="page"] .app-tab-pill {
-  background: color-mix(in srgb, var(--c-pine) 22%, transparent);
+.app-tab:active { transform: scale(0.94); }
+.app-tab[aria-current="page"] {
+  color: var(--c-pine-deep);
+  background: color-mix(in srgb, var(--c-pine) 16%, transparent);
 }
+.app-tab-pill { display: flex; align-items: center; justify-content: center; }
 
 /* In the app, the Back button floats in the top-left corner like most iPhone apps,
    with a frosted-glass look so it stays readable when the page scrolls under it. */
@@ -264,3 +262,70 @@ html[data-app="native"] .back-button {
 html[data-app="native"] main:has(.back-button:not(.web-only)) {
   padding-top: calc(env(safe-area-inset-top) + 64px) !important;
 }
+
+/* ---------- Colour cards ----------
+   Each feeling gets its own rich colour. White text sits on all of them
+   (every colour is dark enough for white text to read clearly). */
+:root {
+  --g-lagoon: linear-gradient(150deg, #1F5A4B 0%, #2B735F 55%, #368268 100%);
+  --g-dusk: linear-gradient(150deg, #4A3A63 0%, #6A5285 55%, #8467A0 100%);
+  --g-tide: linear-gradient(150deg, #2D4A73 0%, #3F5F90 55%, #5276AD 100%);
+  --g-ember: linear-gradient(150deg, #8A3B1E 0%, #A8522B 55%, #C76A3A 100%);
+  --g-rose: linear-gradient(150deg, #7A2E4A 0%, #974062 55%, #B4587A 100%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --g-lagoon: linear-gradient(150deg, #173F35 0%, #22604F 55%, #2E7461 100%);
+    --g-dusk: linear-gradient(150deg, #3B2E50 0%, #574573 55%, #725990 100%);
+    --g-tide: linear-gradient(150deg, #233B5C 0%, #34507B 55%, #45679B 100%);
+    --g-ember: linear-gradient(150deg, #6E2F18 0%, #8C4224 55%, #A9572F 100%);
+    --g-rose: linear-gradient(150deg, #62243B 0%, #7E3650 55%, #9A4866 100%);
+  }
+}
+
+/* See-through "glass" text box and buttons that sit on a colour card. */
+.glass-field {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.glass-field::placeholder { color: rgba(255, 255, 255, 0.8); }
+.glass-field:focus { outline: none; border-color: rgba(255, 255, 255, 0.85); background: rgba(255, 255, 255, 0.22); }
+.glass-button {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  color: #FFFFFF;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.glass-button:hover { background: rgba(255, 255, 255, 0.24); }
+.glass-button:active, .tile:active, .solid-press:active { transform: scale(0.97); }
+.tile { transition: transform 0.15s ease, box-shadow 0.2s ease; }
+.tile:hover { box-shadow: 0 12px 28px color-mix(in srgb, var(--c-shadow) 22%, transparent); }
+.solid-press { transition: transform 0.15s ease, filter 0.2s ease; }
+.solid-press:hover { filter: brightness(1.04); }
+
+/* The step screen's colour panel reaches the top edge inside the app. */
+html[data-app="native"] main.bleed { padding-top: 0 !important; }
+html[data-app="native"] .mood-panel {
+  margin-left: -20px !important;
+  margin-right: -20px !important;
+  border-radius: 0 0 32px 32px !important;
+  padding-top: calc(env(safe-area-inset-top) + 72px) !important;
+}
+
+/* Full-screen timer and celebration screens. */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow-y: auto;
+  color: #FFFFFF;
+  padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 28px);
+  box-sizing: border-box;
+  animation: fade-in 0.35s ease-out;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.back-row { margin-bottom: 16px; }
+html[data-app="native"] .back-row { margin-bottom: 0; }
+html[data-app="native"] main.bleed.bleed:has(.mood-panel) { padding-top: 0 !important; }
