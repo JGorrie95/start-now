@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { sendFriendRequest, acceptFriendRequest } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
-import { SparkMark } from "@/app/spark-mark";
+import { moods } from "@/app/moods";
+import { JoinFriendsForm } from "@/app/join-friends";
+import { Avatar } from "@/app/avatar";
 
 type FriendProfile = {
   username: string;
@@ -38,11 +40,13 @@ export default function FriendsPage() {
   const [searching, setSearching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  // No friends account yet: show the nickname page instead.
+  const [needsNickname, setNeedsNickname] = useState(false);
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/auth"); return; }
+    if (!user) { setNeedsNickname(true); setLoading(false); return; }
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -50,7 +54,8 @@ export default function FriendsPage() {
       .eq("id", user.id)
       .single();
 
-    if (!profile) { router.push("/profile"); return; }
+    if (!profile) { setNeedsNickname(true); setLoading(false); return; }
+    setNeedsNickname(false);
     setMyProfile({ username: profile.username, streak_count: profile.streak_count, longest_streak: profile.longest_streak, avatar_url: profile.avatar_url });
     setInviteCode(profile.invite_code);
 
@@ -87,7 +92,7 @@ export default function FriendsPage() {
     });
     setPending(incoming);
     setLoading(false);
-  }, [router]);
+  }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -130,6 +135,30 @@ export default function FriendsPage() {
     </main>
   );
 
+  if (needsNickname) return (
+    <main style={bg}>
+      <div className="grain-overlay" />
+      <div style={{ maxWidth: "540px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div className="web-only" style={{ marginBottom: "32px" }}>
+          <BackButton />
+        </div>
+        <h1 style={{ fontSize: "34px", fontWeight: 800, letterSpacing: "-0.02em", margin: "0 0 16px", fontFamily: fonts.body }}>Friends</h1>
+        <div style={{ borderRadius: "28px", padding: "24px 22px", background: moods.dusk.background, color: "#FFFFFF", marginBottom: "16px", boxShadow: "0 18px 40px rgba(74, 58, 99, 0.28)" }}>
+          <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255, 255, 255, 0.88)" }}>KEEP EACH OTHER GOING</div>
+          <p style={{ margin: "10px 0 6px", fontFamily: fonts.display, fontSize: "28px", lineHeight: 1.15, fontWeight: 500, letterSpacing: "-0.01em" }}>See each other&apos;s streaks. Cheer each other on.</p>
+          <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.5, color: "rgba(255, 255, 255, 0.92)" }}>No email. No password. Just a nickname.</p>
+        </div>
+        <JoinFriendsForm
+          buttonLabel="Start my circle →"
+          onJoined={async () => {
+            setLoading(true);
+            await loadData();
+          }}
+        />
+      </div>
+    </main>
+  );
+
   return (
     <main style={bg}>
       <div className="grain-overlay" />
@@ -155,14 +184,7 @@ export default function FriendsPage() {
                   <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? colors.pineDeep : colors.inkFaint, width: "24px", textAlign: "center", fontFamily: fonts.display }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </div>
-                  {person.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={person.avatar_url} alt={person.username} style={{ width: "34px", height: "34px", borderRadius: "10px", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ width: "34px", height: "34px", borderRadius: "10px", background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <SparkMark size={16} stroke={colors.onAccent} dot={colors.onAccent} />
-                    </div>
-                  )}
+                  <Avatar url={person.avatar_url} size={34} label={person.username} />
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: "15px" }}>{person.username}</span>
                     {person.isMe && <span style={{ fontSize: "12px", color: colors.pineDeep, marginLeft: "8px" }}>you</span>}
@@ -216,7 +238,7 @@ export default function FriendsPage() {
         {/* Invite link */}
         <div style={card}>
           <p style={{ fontSize: "12px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px", fontWeight: 600 }}>Invite via link</p>
-          <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Anyone who opens this link and signs in gets added to your circle automatically.</p>
+          <p style={{ fontSize: "13px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Send this to a friend. They can join your circle with just a nickname, no email needed.</p>
           <button onClick={copyInvite} style={{ width: "100%", padding: "12px", borderRadius: radius.sm, border: "none", background: copied ? colors.pineDeep : tint(colors.pine, 0.1), color: copied ? colors.onAccent : colors.pineDeep, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>

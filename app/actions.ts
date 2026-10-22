@@ -3,27 +3,33 @@ import { createClient } from "@/lib/supabase/server";
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 
-export async function completeStep() {
+// Dates are written like "2026-10-21".
+function isDay(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+}
+
+function shiftDay(day: string, days: number) {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// "Today" should be the date on the person's phone, not the server's (the server runs on
+// UTC, which is already tomorrow on a BC evening). Phones are at most a day either side.
+function pickToday(phoneToday?: string) {
+  const serverToday = new Date().toISOString().slice(0, 10);
+  if (isDay(phoneToday) && Math.abs(Date.parse(`${phoneToday}T00:00:00Z`) - Date.parse(`${serverToday}T00:00:00Z`)) <= 86_400_000) {
+    return phoneToday;
+  }
+  return serverToday;
+}
+
+export async function completeStep(phoneToday?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
 
-  const today = new Date().toISOString().split("T")[0];
-
-  const { error: insertError } = await supabase
-    .from("streak_completions")
-    .insert({ user_id: user.id, completed_date: today });
-
-  if (insertError?.code === "23505") {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("streak_count")
-      .eq("id", user.id)
-      .single();
-    return { alreadyDone: true, streak: profile?.streak_count ?? 0 };
-  }
-
-  if (insertError) return { error: "Failed to record" };
+  const today = pickToday(phoneToday);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -31,9 +37,22 @@ export async function completeStep() {
     .eq("id", user.id)
     .single();
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  // Already counted today (maybe on the phone, before joining friends).
+  if (profile?.last_completed_date === today) {
+    return { alreadyDone: true, streak: profile.streak_count ?? 0 };
+  }
+
+  const { error: insertError } = await supabase
+    .from("streak_completions")
+    .insert({ user_id: user.id, completed_date: today });
+
+  if (insertError?.code === "23505") {
+    return { alreadyDone: true, streak: profile?.streak_count ?? 0 };
+  }
+
+  if (insertError) return { error: "Failed to record" };
+
+  const yesterdayStr = shiftDay(today, -1);
 
   const isConsecutive = profile?.last_completed_date === yesterdayStr;
   const newStreak = isConsecutive ? (profile?.streak_count ?? 0) + 1 : 1;
@@ -49,26 +68,46 @@ export async function completeStep() {
   return { streak: newStreak, longest: newLongest };
 }
 
-export async function createProfile(username: string) {
+// startingStreak: the streak that was saved on the phone before joining friends, so
+// nobody loses their progress. It only carries over if it's still going.
+export async function createProfile(
+  username: string,
+  startingStreak?: { count: number; longest: number; lastDate: string | null },
+  phoneToday?: string,
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
 
   const clean = username.toLowerCase().trim();
   if (!/^[a-z0-9_]{3,20}$/.test(clean)) {
-    return { error: "3–20 chars, letters, numbers and _ only" };
+    return { error: "3–20 characters: letters, numbers and _ only" };
   }
 
   const inviteCode = randomBytes(4).toString("hex");
+
+  const today = pickToday(phoneToday);
+  const carried =
+    startingStreak && isDay(startingStreak.lastDate) && startingStreak.lastDate >= shiftDay(today, -1) && startingStreak.lastDate <= today
+      ? startingStreak
+      : null;
+  const count = carried ? Math.min(3650, Math.max(0, Math.floor(carried.count) || 0)) : 0;
+  const longest = Math.min(3650, Math.max(count, Math.floor(startingStreak?.longest ?? 0) || 0));
 
   const { error } = await supabase.from("profiles").insert({
     id: user.id,
     username: clean,
     invite_code: inviteCode,
+    ...(count > 0 || longest > 0
+      ? { streak_count: count, longest_streak: longest, last_completed_date: carried ? carried.lastDate : null }
+      : {}),
   });
 
-  if (error?.code === "23505") return { error: "Username already taken" };
-  if (error) return { error: "Failed to create profile" };
+  if (error?.code === "23505") return { error: "That name is taken. Try another one." };
+  if (error) {
+    console.error("createProfile error:", error);
+    return { error: "That didn't work. Please try again in a minute." };
+  }
 
   revalidatePath("/profile");
   return { success: true };
@@ -144,4 +183,22 @@ export async function addFriendByInvite(inviteCode: string) {
 
   revalidatePath("/friends");
   return { success: true, inviterUsername: inviter.username };
+}
+
+// Settings > "Leave friends" (for friends accounts without an email). Removes them from
+// everyone's circle and deletes what the database held about them. Their streak was
+// already copied back onto their phone before this runs.
+export async function leaveFriends() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthenticated" };
+
+  await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+  await supabase.from("streak_completions").delete().eq("user_id", user.id);
+  await supabase.storage.from("avatars").remove([`${user.id}/avatar.jpg`]);
+  const { error } = await supabase.from("profiles").delete().eq("id", user.id);
+  if (error) console.error("leaveFriends profile delete error:", error);
+
+  revalidatePath("/friends");
+  return { success: true };
 }

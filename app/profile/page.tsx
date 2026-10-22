@@ -7,7 +7,7 @@ import { createProfile } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { Avatar, uploadAvatar, makeLocalPhoto } from "@/app/avatar";
-import { subscribePreferences, getLocalPhoto, setLocalPhoto } from "@/app/preferences";
+import { subscribePreferences, getLocalPhoto, setLocalPhoto, getLocalStreak, streakNow, NO_STREAK } from "@/app/preferences";
 
 type Profile = {
   username: string;
@@ -15,9 +15,11 @@ type Profile = {
   longest_streak: number;
   invite_code: string;
   avatar_url: string | null;
+  last_completed_date: string | null;
 };
 
 const card: React.CSSProperties = { ...cardSurface, padding: "24px" };
+const sectionHeading: React.CSSProperties = { margin: "26px 6px 10px", fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft };
 
 const navButton: React.CSSProperties = {
   fontSize: "14px", color: colors.inkSoft, background: colors.paper, padding: "8px 14px",
@@ -30,7 +32,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
+  const phoneStreak = streakNow(useSyncExternalStore(subscribePreferences, getLocalStreak, () => NO_STREAK));
   const [username, setUsername] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,10 +47,11 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
     // No account is fine: they get the on-device profile below.
     if (!user) { setSignedOut(true); setLoading(false); return; }
+    setAnonymous(!!user.is_anonymous);
 
     const { data } = await supabase
       .from("profiles")
-      .select("username, streak_count, longest_streak, invite_code, avatar_url")
+      .select("username, streak_count, longest_streak, invite_code, avatar_url, last_completed_date")
       .eq("id", user.id)
       .single();
 
@@ -136,6 +141,17 @@ export default function ProfilePage() {
           {uploadError && <p role="alert" style={{ color: colors.danger, fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
         </div>
 
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+          <div style={{ ...card, textAlign: "center", padding: "20px" }}>
+            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.pineDeep, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{phoneStreak.count}</div>
+            <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>🔥 Current streak</div>
+          </div>
+          <div style={{ ...card, textAlign: "center", padding: "20px" }}>
+            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.ink, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{phoneStreak.longest}</div>
+            <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>⭐ Best streak</div>
+          </div>
+        </div>
+
         <Link href="/settings" className="settings-row" style={{ ...card, display: "flex", alignItems: "center", gap: "14px", padding: "16px 18px", marginBottom: "14px", textDecoration: "none", color: colors.ink }}>
           <span style={{ width: "44px", height: "44px", borderRadius: "14px", background: tint(colors.pine, 0.14), color: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2.2" /><circle cx="9" cy="17" r="2.2" /></svg>
@@ -147,14 +163,30 @@ export default function ProfilePage() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.inkFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
         </Link>
 
-        <div style={{ padding: "6px 6px 0" }}>
-          <p style={{ margin: "18px 0 6px", fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft }}>OPTIONAL</p>
-          <p style={{ margin: "0 0 12px", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
-            You don&apos;t need an account to use Start Now. If you want friends to see your streak, you can make a free one with just your email. We only keep your email, a username and your streak.
+        <h2 style={sectionHeading}>YOUR PRIVACY</h2>
+        <div style={{ ...card, padding: "20px", marginBottom: "14px", display: "flex", gap: "14px", alignItems: "flex-start" }}>
+          <span style={{ width: "44px", height: "44px", borderRadius: "14px", background: tint(colors.pine, 0.14), color: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          </span>
+          <div>
+            <p style={{ margin: "0 0 6px", fontSize: "17px", fontWeight: 700 }}>What&apos;s yours stays yours.</p>
+            <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
+              Privacy matters to us. Your streak, photo and settings stay on this phone. We don&apos;t collect them, and we will never sell or share your data with anyone.
+            </p>
+          </div>
+        </div>
+
+        <h2 style={sectionHeading}>FRIENDS (OPTIONAL)</h2>
+        <div style={{ ...card, padding: "20px" }}>
+          <p style={{ margin: "0 0 14px", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
+            Want friends to cheer you on? Just pick a nickname, no email needed. Friends see your nickname and streak, and your photo only if you choose. We keep only that and who&apos;s in your circle, so your friends can see it.
           </p>
-          <button type="button" onClick={() => router.push("/auth")} className="solid-press" style={{ height: "48px", padding: "0 20px", borderRadius: "16px", border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
-            Create an account or sign in
+          <button type="button" onClick={() => router.push("/friends")} className="solid-press" style={{ height: "48px", padding: "0 22px", borderRadius: "16px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
+            Add friends
           </button>
+          <p style={{ margin: "14px 0 0" }}>
+            <Link href="/auth" style={{ color: colors.inkSoft, fontSize: "14px", fontWeight: 600, textUnderlineOffset: "3px" }}>Have an email account? Sign in</Link>
+          </p>
         </div>
       </div>
     </main>
@@ -198,8 +230,7 @@ export default function ProfilePage() {
           <BackButton className="web-only" />
           <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
             <button className="web-only" onClick={() => router.push("/friends")} style={navButton}>Friends</button>
-            <button onClick={() => router.push("/settings")} style={navButton}>Settings</button>
-            <button onClick={handleSignOut} style={navButton}>Sign out</button>
+            {!anonymous && <button onClick={handleSignOut} style={navButton}>Sign out</button>}
           </div>
         </div>
 
@@ -212,13 +243,13 @@ export default function ProfilePage() {
             </div>
           </label>
           <h1 style={{ fontSize: "24px", fontWeight: 700, letterSpacing: "-0.04em", margin: "0 0 4px", fontFamily: fonts.display }}>{profile?.username}</h1>
-          <p style={{ color: colors.inkFaint, fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it"}</p>
+          <p style={{ color: colors.inkFaint, fontSize: "13px", margin: 0 }}>{uploading ? "Uploading…" : "Tap your photo to change it. Friends can see it."}</p>
           {uploadError && <p style={{ color: colors.danger, fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
           <div style={{ ...card, textAlign: "center" }}>
-            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.pineDeep, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{profile?.streak_count ?? 0}</div>
+            <div style={{ fontSize: "36px", fontWeight: 700, color: colors.pineDeep, fontFamily: fonts.display, letterSpacing: "-0.04em" }}>{profile ? streakNow({ count: profile.streak_count ?? 0, longest: 0, lastDate: profile.last_completed_date }).count : 0}</div>
             <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>🔥 Current streak</div>
           </div>
           <div style={{ ...card, textAlign: "center" }}>
@@ -226,6 +257,17 @@ export default function ProfilePage() {
             <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "4px" }}>⭐ Best streak</div>
           </div>
         </div>
+
+        <Link href="/settings" className="settings-row" style={{ ...card, display: "flex", alignItems: "center", gap: "14px", padding: "16px 18px", marginBottom: "14px", textDecoration: "none", color: colors.ink }}>
+          <span style={{ width: "44px", height: "44px", borderRadius: "14px", background: tint(colors.pine, 0.14), color: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2.2" /><circle cx="9" cy="17" r="2.2" /></svg>
+          </span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: "block", fontSize: "17px", fontWeight: 700 }}>Settings</span>
+            <span style={{ display: "block", fontSize: "14px", color: colors.inkSoft, marginTop: "2px" }}>Alarm sound and dark mode</span>
+          </span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.inkFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
 
         <div style={card}>
           <p style={{ fontSize: "13px", color: colors.inkFaint, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px", fontWeight: 600 }}>Your invite link</p>
@@ -240,6 +282,10 @@ export default function ProfilePage() {
             {copied ? "Copied! ✓" : "Copy invite link"}
           </button>
         </div>
+
+        <p style={{ margin: "16px 6px 0", fontSize: "13px", lineHeight: 1.55, color: colors.inkSoft }}>
+          Your privacy: we only keep your {anonymous ? "nickname" : "email, username"}, your streak{profile?.avatar_url ? ", the photo you chose" : ""} and who&apos;s in your circle, so your friends can see them. We never sell or share your data with anyone.
+        </p>
       </div>
     </main>
   );

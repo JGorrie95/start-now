@@ -88,6 +88,65 @@ export function setLocalPhoto(url: string | null) {
   write(PHOTO_KEY, url ?? "");
 }
 
+// ---------- Streak without an account ----------
+// Saved only on this phone or computer, like the photo. People with a friends account
+// keep their streak in the database instead, so friends can see it.
+
+export type LocalStreak = { count: number; longest: number; lastDate: string | null };
+
+const STREAK_KEY = "startnow-streak";
+export const NO_STREAK: LocalStreak = { count: 0, longest: 0, lastDate: null };
+let streakCache: { raw: string | null; value: LocalStreak } | null = null;
+
+// Today's date on this phone, like "2026-10-21". offsetDays: -1 is yesterday.
+export function localDate(offsetDays = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function getLocalStreak(): LocalStreak {
+  const raw = read(STREAK_KEY);
+  if (streakCache && streakCache.raw === raw) return streakCache.value;
+  let value = NO_STREAK;
+  try {
+    const saved = raw ? JSON.parse(raw) : null;
+    if (saved) {
+      value = {
+        count: Math.max(0, Math.floor(Number(saved.count) || 0)),
+        longest: Math.max(0, Math.floor(Number(saved.longest) || 0)),
+        lastDate: typeof saved.lastDate === "string" ? saved.lastDate : null,
+      };
+    }
+  } catch {
+    // Damaged save: start fresh.
+  }
+  streakCache = { raw, value };
+  return value;
+}
+
+export function saveLocalStreak(streak: LocalStreak) {
+  write(STREAK_KEY, JSON.stringify(streak));
+}
+
+// What a streak shows right now. It only counts if the last step was today or yesterday.
+export function streakNow(streak: { count: number; longest: number; lastDate: string | null }) {
+  const doneToday = streak.lastDate === localDate(0);
+  const alive = doneToday || streak.lastDate === localDate(-1);
+  return { count: alive ? streak.count : 0, longest: streak.longest, doneToday };
+}
+
+// "I did it!" without an account.
+export function completeLocalStep(): { alreadyDone: boolean; streak: number; longest: number } {
+  const saved = getLocalStreak();
+  const today = localDate(0);
+  if (saved.lastDate === today) return { alreadyDone: true, streak: saved.count, longest: saved.longest };
+  const count = saved.lastDate === localDate(-1) ? saved.count + 1 : 1;
+  const longest = Math.max(count, saved.longest);
+  saveLocalStreak({ count, longest, lastDate: today });
+  return { alreadyDone: false, streak: count, longest };
+}
+
 // ---------- Alarm sound ----------
 
 // The iPhone's own alarm is only possible in the iPhone app, so the website starts on Chimes.

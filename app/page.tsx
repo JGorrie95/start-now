@@ -9,7 +9,7 @@ import { SparkMark } from "@/app/spark-mark";
 import { Avatar } from "@/app/avatar";
 import { Reveal } from "@/app/reveal";
 import { moods, quickStarts } from "@/app/moods";
-import { subscribePreferences, getLocalPhoto } from "@/app/preferences";
+import { subscribePreferences, getLocalPhoto, getLocalStreak, streakNow, NO_STREAK } from "@/app/preferences";
 
 // Today's date for the header, e.g. "SATURDAY, OCTOBER 17", worked out on the phone in its own
 // time zone. The server leaves it blank so the page never shows the server's date.
@@ -43,31 +43,30 @@ const primaryCta: CSSProperties = {
 
 export default function HomePage() {
   const [task, setTask] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [account, setAccount] = useState<"checking" | "signedOut" | "signedIn">("checking");
   const [streak, setStreak] = useState<{ count: number; doneToday: boolean } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const today = useToday();
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
+  const localStreak = useSyncExternalStore(subscribePreferences, getLocalStreak, () => NO_STREAK);
   const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setIsLoggedIn(!!user);
+      setAccount(user ? "signedIn" : "signedOut");
       if (!user) return;
       const { data } = await supabase.from("profiles").select("streak_count, last_completed_date, avatar_url").eq("id", user.id).single();
       if (!data) return;
       setAvatarUrl(data.avatar_url ?? null);
-      // Same date rules as completeStep in actions.ts.
-      const todayStr = new Date().toISOString().split("T")[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-      const doneToday = data.last_completed_date === todayStr;
-      const alive = doneToday || data.last_completed_date === yesterdayStr;
-      setStreak({ count: alive ? data.streak_count ?? 0 : 0, doneToday });
+      const now = streakNow({ count: data.streak_count ?? 0, longest: 0, lastDate: data.last_completed_date });
+      setStreak({ count: now.count, doneToday: now.doneToday });
     });
   }, []);
+
+  const isLoggedIn = account === "signedIn";
+  // With a friends account the streak comes from the database; without one, from this phone.
+  const shownStreak = account === "signedIn" ? streak : account === "signedOut" ? streakNow(localStreak) : null;
 
   const startWith = (text: string) => router.push(`/stuck?task=${encodeURIComponent(text)}`);
 
@@ -114,7 +113,7 @@ export default function HomePage() {
                 </svg>
               </Link>
               <Link href="/profile" aria-label="Your profile" style={{ display: "flex", flexShrink: 0 }}>
-                <Avatar url={avatarUrl ?? localPhoto} size={44} />
+                <Avatar url={isLoggedIn ? avatarUrl : localPhoto} size={44} />
               </Link>
             </div>
           </div>
@@ -190,16 +189,16 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Streak, once you're signed in */}
-            {isLoggedIn && streak && (
+            {/* Streak: on this phone, or from your friends account */}
+            {shownStreak && (
               <Link href="/profile" style={{ marginTop: "12px", minHeight: "60px", boxSizing: "border-box", borderRadius: "20px", background: colors.paper, border: `1px solid ${tint(colors.ink, 0.06)}`, padding: "10px 16px", display: "flex", alignItems: "center", gap: "12px", textDecoration: "none", color: colors.ink }}>
-                <span style={{ width: "36px", height: "36px", borderRadius: "50%", background: tint(colors.pine, 0.14), display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "15px", color: colors.pineDeep, flexShrink: 0 }}>{streak.count}</span>
+                <span style={{ width: "36px", height: "36px", borderRadius: "50%", background: tint(colors.pine, 0.14), display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "15px", color: colors.pineDeep, flexShrink: 0 }}>{shownStreak.count}</span>
                 <span style={{ flexGrow: 1 }}>
                   <span style={{ display: "block", fontSize: "15px", fontWeight: 700 }}>
-                    {streak.count === 0 ? "Start a streak today" : `${streak.count} day streak`}
+                    {shownStreak.count === 0 ? "Start a streak today" : `${shownStreak.count} day streak`}
                   </span>
                   <span style={{ display: "block", fontSize: "13px", color: colors.inkSoft }}>
-                    {streak.doneToday ? "Done for today. Nice work." : streak.count === 0 ? "One small step is all it takes" : `One small step today makes it ${streak.count + 1}`}
+                    {shownStreak.doneToday ? "Done for today. Nice work." : shownStreak.count === 0 ? "One small step is all it takes" : `One small step today makes it ${shownStreak.count + 1}`}
                   </span>
                 </span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ color: colors.inkSoft, flexShrink: 0 }}><path d="M9 5l7 7-7 7" /></svg>

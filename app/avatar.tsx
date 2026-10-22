@@ -1,13 +1,16 @@
 "use client";
 // Your profile photo: how it's shown, and how a new one is saved.
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SparkMark } from "@/app/spark-mark";
 
 // A round photo, or the Start Now mark on green when there isn't one yet.
 export function Avatar({ url, size = 44, label = "Your profile photo" }: { url: string | null | undefined; size?: number; label?: string }) {
-  if (url) {
+  // If a photo can't load (offline, or it was removed), show the mark instead of a broken image.
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  if (url && url !== brokenUrl) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={label} width={size} height={size} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", flexShrink: 0 }} />;
+    return <img src={url} alt={label} width={size} height={size} onError={() => setBrokenUrl(url)} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", flexShrink: 0 }} />;
   }
   return (
     <span role="img" aria-label={label} style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(150deg, #1F5A4B 0%, #2B735F 55%, #368268 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -53,7 +56,7 @@ async function squarePhoto(file: File, size = 512): Promise<Blob> {
 export async function makeLocalPhoto(file: File): Promise<{ url?: string; error?: string }> {
   if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) return { error: "Please choose a photo." };
   try {
-    const blob = await squarePhoto(file, 256);
+    const blob = await squarePhoto(file, 400);
     const url = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
@@ -66,19 +69,32 @@ export async function makeLocalPhoto(file: File): Promise<{ url?: string; error?
   }
 }
 
-// Saves a new profile photo. Resolves with its web address, or a friendly error.
+// Saves a new profile photo for friends to see. Resolves with its web address, or a friendly error.
 export async function uploadAvatar(file: File): Promise<{ url?: string; error?: string }> {
   if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) return { error: "Please choose a photo." };
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Please sign in first." };
-
   let photo: Blob;
   try {
     photo = await squarePhoto(file);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "That photo couldn't be opened." };
   }
+  return savePhoto(photo);
+}
+
+// Shares the photo that's on this phone with friends (only when someone ticks the box).
+export async function shareLocalPhoto(dataUrl: string): Promise<{ url?: string; error?: string }> {
+  try {
+    const photo = await (await fetch(dataUrl)).blob();
+    return savePhoto(photo);
+  } catch {
+    return { error: "The photo didn't save. You can add it later in Profile." };
+  }
+}
+
+async function savePhoto(photo: Blob): Promise<{ url?: string; error?: string }> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Please join friends first." };
 
   const path = `${user.id}/avatar.jpg`;
   const { error: uploadError } = await supabase.storage

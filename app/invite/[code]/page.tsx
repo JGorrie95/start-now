@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { addFriendByInvite } from "@/app/actions";
 import { colors, fonts, radius, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
+import { JoinFriendsForm } from "@/app/join-friends";
 
 export default function InvitePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -31,8 +32,12 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
         setInviterStreak(inviter.streak_count);
       }
 
+      // "Logged in" here means they already have a friends account (a nickname).
       const { data: { user } } = await supabase.auth.getUser();
-      setIsLoggedIn(!!user);
+      if (user) {
+        const { data: me } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
+        setIsLoggedIn(!!me);
+      }
       setLoading(false);
     };
     init();
@@ -88,10 +93,8 @@ export default function InvitePage({ params }: { params: Promise<{ code: string 
               </button>
             ) : (
               <>
-                <p style={{ color: colors.inkSoft, fontSize: "14px", marginBottom: "16px" }}>Sign in first, then you&apos;ll be added automatically.</p>
-                <button onClick={() => router.push(`/auth?next=/invite/${code}`)} style={{ width: "100%", padding: "14px", borderRadius: radius.sm, border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
-                  Sign in to join →
-                </button>
+                <p style={{ color: colors.inkSoft, fontSize: "14px", marginBottom: "18px" }}>Join with just a nickname. No email needed.</p>
+                <JoinFriendsForm plain buttonLabel={`Join ${inviterUsername}'s circle →`} signInHref={`/auth?next=/invite/${code}`} onJoined={handleJoin} />
               </>
             )}
           </>

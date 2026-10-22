@@ -2,12 +2,13 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
+import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer } from "@/app/native";
 import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
-import { getSound, type SoundId } from "@/app/preferences";
+import { getSound, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
 import { unlockAudio, loadSound, ringAlarm, stopAlarm } from "@/app/sounds";
 
 type StepVariant = { step: string; reason: string };
@@ -107,7 +108,7 @@ type DoneState =
   | { status: "loading" }
   | { status: "success"; streak: number }
   | { status: "alreadyDone"; streak: number }
-  | { status: "unauthenticated" };
+  | { status: "error" };
 
 function Confetti() {
   const pieceColors = ["#FBFAF5", "#9FD9C6", "#B5A5C0", "#E59A5C", "#8FB3E3", "#F2C66D"];
@@ -484,18 +485,44 @@ function StuckContent() {
     writeSomethingElse();
   };
 
+  // No friends account: the streak is kept on this phone and nothing is sent anywhere.
+  const markDoneOnPhone = () => {
+    const local = completeLocalStep();
+    if (local.alreadyDone) {
+      setDoneState({ status: "alreadyDone", streak: local.streak });
+    } else {
+      setDoneState({ status: "success", streak: local.streak });
+      successHaptic();
+    }
+  };
+
   const handleMarkDone = async () => {
     setDoneState({ status: "loading" });
-    const res = await completeStep();
-    if (res.error === "unauthenticated") {
-      setDoneState({ status: "unauthenticated" });
-    } else if ("alreadyDone" in res && res.alreadyDone) {
-      setDoneState({ status: "alreadyDone", streak: res.streak ?? 0 });
-    } else if ("streak" in res && res.streak !== undefined) {
-      setDoneState({ status: "success", streak: res.streak });
-      successHaptic();
-    } else {
-      setDoneState({ status: "idle" });
+    let signedIn = false;
+    try {
+      const { data } = await createClient().auth.getSession(); // checks this phone only, no internet needed
+      signedIn = !!data.session;
+    } catch {
+      signedIn = false;
+    }
+    if (!signedIn) {
+      markDoneOnPhone();
+      return;
+    }
+    try {
+      const res = await completeStep(localDate());
+      if (res.error === "unauthenticated") {
+        markDoneOnPhone();
+      } else if ("alreadyDone" in res && res.alreadyDone) {
+        setDoneState({ status: "alreadyDone", streak: res.streak ?? 0 });
+      } else if ("streak" in res && res.streak !== undefined) {
+        setDoneState({ status: "success", streak: res.streak });
+        successHaptic();
+      } else {
+        setDoneState({ status: "error" });
+      }
+    } catch {
+      setDoneState({ status: "error" });
     }
   };
 
@@ -563,10 +590,10 @@ function StuckContent() {
                   <p style={{ fontSize: "14px", color: colors.inkSoft, margin: 0 }}>{doneState.streak} day streak. Come back tomorrow to make it {doneState.streak + 1}.</p>
                 </div>
               )}
-              {doneState.status === "unauthenticated" && (
+              {doneState.status === "error" && (
                 <div style={{ ...cardSurface, padding: "18px", textAlign: "center" }}>
-                  <p style={{ fontSize: "15px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Nice work. Sign in to save your streak and cheer on friends.</p>
-                  <button onClick={() => router.push("/auth")} className="solid-press" style={{ height: "48px", padding: "0 22px", borderRadius: "16px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Sign in →</button>
+                  <p style={{ fontSize: "15px", color: colors.inkSoft, margin: "0 0 12px", lineHeight: 1.5 }}>Nice work! Your streak didn&apos;t save, maybe the internet dropped. Try again in a moment.</p>
+                  <button onClick={handleMarkDone} className="solid-press" style={{ height: "48px", padding: "0 22px", borderRadius: "16px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>Try again</button>
                 </div>
               )}
             </div>

@@ -8,13 +8,14 @@ import { BackButton } from "@/app/back-button";
 import { moods } from "@/app/moods";
 import { Avatar, uploadAvatar, removeAvatar, makeLocalPhoto } from "@/app/avatar";
 import { alarmSounds, previewSound, stopPreviewSound, type AlarmSound } from "@/app/sounds";
-import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, type ThemeChoice, type SoundId } from "@/app/preferences";
+import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, type ThemeChoice, type SoundId } from "@/app/preferences";
 import { testPhoneAlarm } from "@/app/native";
+import { leaveFriends } from "@/app/actions";
 
 type Account =
   | { status: "loading" }
   | { status: "signedOut" }
-  | { status: "signedIn"; email: string; username: string | null; avatarUrl: string | null };
+  | { status: "signedIn"; email: string; username: string | null; avatarUrl: string | null; anonymous: boolean };
 
 const sectionLabel: CSSProperties = {
   fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft, margin: "30px 6px 10px",
@@ -153,6 +154,8 @@ export default function SettingsPage() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const [testMessage, setTestMessage] = useState("");
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,7 +170,7 @@ export default function SettingsPage() {
         }
         const { data } = await supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle();
         if (cancelled) return;
-        setAccount({ status: "signedIn", email: user.email ?? "", username: data?.username ?? null, avatarUrl: data?.avatar_url ?? null });
+        setAccount({ status: "signedIn", email: user.email ?? "", username: data?.username ?? null, avatarUrl: data?.avatar_url ?? null, anonymous: !!user.is_anonymous });
       })
       .catch(() => {
         if (!cancelled) setAccount({ status: "signedOut" });
@@ -242,9 +245,36 @@ export default function SettingsPage() {
     setPhotoBusy(false);
   };
 
+  // Before signing out or leaving, copy the streak onto this phone so it keeps going.
+  const keepStreakOnPhone = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("streak_count, longest_streak, last_completed_date").eq("id", user.id).maybeSingle();
+      if (data) saveLocalStreak({ count: data.streak_count ?? 0, longest: data.longest_streak ?? 0, lastDate: data.last_completed_date ?? null });
+    } catch {
+      // Offline: the phone keeps whatever streak it already had.
+    }
+  };
+
   const signOut = async () => {
+    await keepStreakOnPhone();
     await createClient().auth.signOut();
     router.push("/");
+  };
+
+  // Friends accounts without an email: leave the circle and delete the nickname for good.
+  const leave = async () => {
+    setLeaving(true);
+    await keepStreakOnPhone();
+    try {
+      await leaveFriends();
+    } catch {
+      // Still sign out below.
+    }
+    await createClient().auth.signOut();
+    router.push("/profile");
   };
 
   const lastSound = alarmSounds[alarmSounds.length - 1].id;
@@ -281,6 +311,7 @@ export default function SettingsPage() {
               </label>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "17px", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{account.username ?? "Your profile"}</div>
+                <div style={{ fontSize: "13px", color: colors.inkSoft, marginTop: "2px" }}>Your friends can see this photo.</div>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "10px", flexWrap: "wrap" }}>
                   <label className="solid-press" style={{ ...pillButton, cursor: photoBusy ? "wait" : "pointer" }}>
                     <input type="file" accept="image/*" onChange={changePhoto} disabled={photoBusy} style={{ display: "none" }} />
@@ -388,7 +419,34 @@ export default function SettingsPage() {
         </div>
 
         {/* Account */}
-        {account.status === "signedIn" && (
+        {account.status === "signedIn" && account.anonymous && (
+          <>
+            <h2 style={sectionLabel}>FRIENDS</h2>
+            <div style={group}>
+              <div style={{ padding: "16px", borderBottom: `1px solid ${tint(colors.ink, 0.07)}`, fontSize: "14px", lineHeight: 1.5, color: colors.inkSoft }}>
+                Your nickname is <strong style={{ color: colors.ink }}>{account.username ?? "not set yet"}</strong>. There&apos;s no email or password, so it lives on this phone.
+              </div>
+              {confirmLeave ? (
+                <div style={{ padding: "16px" }}>
+                  <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: colors.ink }}>
+                    Leave your circle? Friends won&apos;t see you anymore and this nickname is deleted for good. Your streak stays on this phone.
+                  </p>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button type="button" onClick={() => void leave()} disabled={leaving} className="solid-press" style={{ ...pillButton, background: colors.danger, color: "#FFFFFF" }}>
+                      {leaving ? "Leaving…" : "Leave friends"}
+                    </button>
+                    <button type="button" onClick={() => setConfirmLeave(false)} disabled={leaving} style={textButton}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmLeave(true)} className="settings-row" style={{ width: "100%", padding: "16px", border: "none", background: "transparent", textAlign: "left", fontSize: "16px", fontWeight: 700, color: colors.danger, cursor: "pointer", fontFamily: fonts.body }}>
+                  Leave friends
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {account.status === "signedIn" && !account.anonymous && (
           <>
             <h2 style={sectionLabel}>ACCOUNT</h2>
             <div style={group}>
