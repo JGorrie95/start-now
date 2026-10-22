@@ -244,7 +244,7 @@ export default function SettingsPage() {
     <main style={{ ...pageBg, padding: "20px 20px 80px" }}>
       <div className="grain-overlay" />
       <div style={{ maxWidth: "520px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <BackButton href="/profile" label="Back to your profile" style={{ marginBottom: "22px" }} />
+        <BackButton href="/" previous label="Back" style={{ marginBottom: "22px" }} />
         <h1 style={{ margin: 0, fontSize: "34px", lineHeight: 1.1, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: fonts.body }}>Settings</h1>
         <p style={{ margin: "6px 0 0", fontSize: "15px", color: colors.inkSoft }}>Make Start Now feel like yours.</p>
 

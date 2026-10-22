@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
+import { Avatar } from "@/app/avatar";
 import { Reveal } from "@/app/reveal";
 import { moods, quickStarts } from "@/app/moods";
 
@@ -43,6 +44,7 @@ export default function HomePage() {
   const [task, setTask] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [streak, setStreak] = useState<{ count: number; doneToday: boolean } | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const today = useToday();
   const router = useRouter();
 
@@ -51,8 +53,9 @@ export default function HomePage() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user);
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("streak_count, last_completed_date").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("streak_count, last_completed_date, avatar_url").eq("id", user.id).single();
       if (!data) return;
+      setAvatarUrl(data.avatar_url ?? null);
       // Same date rules as completeStep in actions.ts.
       const todayStr = new Date().toISOString().split("T")[0];
       const yesterday = new Date();
@@ -100,9 +103,18 @@ export default function HomePage() {
               <div style={{ fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft, minHeight: "18px" }}>{today}</div>
               <h1 style={{ margin: "2px 0 0", fontSize: "34px", lineHeight: 1.1, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: fonts.body }}>Start Now</h1>
             </div>
-            <Link href="/profile" aria-label="Your profile" style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#2F6F5E", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <SparkMark size={24} stroke="#FFFFFF" dot="#9FD9C6" />
-            </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+              <Link href="/settings" aria-label="Settings" style={{ width: "44px", height: "44px", borderRadius: "50%", background: colors.paper, color: colors.ink, border: `1px solid ${tint(colors.ink, 0.1)}`, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+                  <circle cx="15" cy="7" r="2.2" />
+                  <circle cx="9" cy="17" r="2.2" />
+                </svg>
+              </Link>
+              <Link href="/profile" aria-label="Your profile" style={{ display: "flex", flexShrink: 0 }}>
+                <Avatar url={avatarUrl} size={44} />
+              </Link>
+            </div>
           </div>
         </div>
 

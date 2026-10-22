@@ -11,17 +11,20 @@ export function BackButton({
   style,
   href = "/",
   label = "Back to the home screen",
+  previous = false,
 }: {
   className?: string;
   style?: CSSProperties;
   href?: string;
   label?: string;
+  // true: go back to the page you came from (if there was one), otherwise to href.
+  previous?: boolean;
 }) {
   const router = useRouter();
   return (
     <button
       type="button"
-      onClick={() => router.push(href)}
+      onClick={() => (previous && window.history.length > 1 ? router.back() : router.push(href))}
       className={`press back-button${className ? ` ${className}` : ""}`}
       aria-label={label}
       style={{
