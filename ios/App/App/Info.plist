@@ -26,6 +26,10 @@
 	<true/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Start Now rings an alarm when your timer is up, even if your phone is on silent.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Start Now uses the camera so you can take a profile photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Start Now uses your photos so you can pick a profile photo.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

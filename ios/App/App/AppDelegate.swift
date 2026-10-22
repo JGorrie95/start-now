@@ -119,7 +119,7 @@ enum LoudAlarm {
         }
     }
 
-    static func schedule(at date: Date) async -> Bool {
+    static func schedule(at date: Date, sound: String) async -> Bool {
         cancel()
         guard await allowed() else {
             print("[StartNow] Alarm: alarms aren't allowed, using a notification instead")
@@ -135,7 +135,8 @@ enum LoudAlarm {
             attributes: attributes,
             stopIntent: StopTimerAlarmIntent(),
             secondaryIntent: nil,
-            sound: .default)
+            // "iphone" is the system alarm sound. The others are our own sound files inside the app.
+            sound: sound == "iphone" ? .default : .named("\(sound).mp3"))
         do {
             _ = try await AlarmManager.shared.schedule(id: UUID(), configuration: configuration)
             UserDefaults.standard.set(date.timeIntervalSince1970, forKey: firesAtKey)
@@ -172,7 +173,8 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "pause", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resume", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "end", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setSound", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setSound", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "testAlarm", returnType: CAPPluginReturnPromise)
     ]
 
     // So the lock screen button can tell the open app that the sound changed.
@@ -191,6 +193,7 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let step = call.getString("step") ?? "Your one step"
         let totalSeconds = call.getInt("totalSeconds") ?? 300
         let soundOn = call.getBool("soundOn") ?? true
+        LiveTimerPlugin.chosenSound = call.getString("sound") ?? "iphone"
         let endsAtMs = call.getDouble("endsAt") ?? (Date().timeIntervalSince1970 + Double(totalSeconds)) * 1000
         let endsAt = Date(timeIntervalSince1970: endsAtMs / 1000)
         let state = StartNowTimerAttributes.ContentState(endsAt: endsAt, pausedSecondsLeft: nil, done: false, soundOn: soundOn)
@@ -258,6 +261,16 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    // Settings > "Test my alarm": rings in a few seconds with the picked sound.
+    @objc func testAlarm(_ call: CAPPluginCall) {
+        let seconds = max(3, call.getInt("seconds") ?? 5)
+        LiveTimerPlugin.chosenSound = call.getString("sound") ?? "iphone"
+        Task {
+            let kind = await LiveTimerPlugin.setAlarmKind(endsAt: Date().addingTimeInterval(Double(seconds)), soundOn: true, step: "This is your test alarm.")
+            call.resolve(["kind": kind])
+        }
+    }
+
     // The website's own sound switch.
     @objc func setSound(_ call: CAPPluginCall) {
         guard #available(iOS 16.2, *) else { call.resolve(); return }
@@ -300,18 +313,31 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
     // or a notification sound if alarms aren't allowed. Muted: a quiet notification.
     // Returns true when the iPhone will let you know (then the page skips its own chime).
     static func setAlarm(endsAt: Date, soundOn: Bool, step: String) async -> Bool {
+        return await setAlarmKind(endsAt: endsAt, soundOn: soundOn, step: step) != "off"
+    }
+
+    // The sound picked in Settings: "iphone", "chimes", "bell", "bounce" or "beeps".
+    // Remembered so pausing, resuming and the mute button keep using it.
+    static var chosenSound: String {
+        get { UserDefaults.standard.string(forKey: "startnow.alarmSound") ?? "iphone" }
+        set { UserDefaults.standard.set(newValue, forKey: "startnow.alarmSound") }
+    }
+
+    // Like setAlarm, but says what was set: "alarm" (the loud one), "notification" or "off".
+    static func setAlarmKind(endsAt: Date, soundOn: Bool, step: String) async -> String {
         cancelAlarm()
-        guard endsAt.timeIntervalSinceNow > 1 else { return false }
+        guard endsAt.timeIntervalSinceNow > 1 else { return "off" }
+        let sound = chosenSound
         #if canImport(AlarmKit)
         if soundOn {
             if #available(iOS 26.1, *) {
-                if await LoudAlarm.schedule(at: endsAt) { return true }
+                if await LoudAlarm.schedule(at: endsAt, sound: sound) { return "alarm" }
             }
         }
         #endif
-        guard await allowNotifications() else { return false }
-        scheduleNotification(endsAt: endsAt, soundOn: soundOn, step: step)
-        return true
+        guard await allowNotifications() else { return "off" }
+        scheduleNotification(endsAt: endsAt, soundOn: soundOn, step: step, sound: sound)
+        return "notification"
     }
 
     static func allowNotifications() async -> Bool {
@@ -329,7 +355,7 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     // The backup: a notification at the moment the timer ends. With sound on it plays the
     // iPhone's alert sound (it follows the ring/silent switch); muted, it just shows quietly.
-    static func scheduleNotification(endsAt: Date, soundOn: Bool, step: String) {
+    static func scheduleNotification(endsAt: Date, soundOn: Bool, step: String, sound: String = "iphone") {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [alarmId])
         let seconds = endsAt.timeIntervalSinceNow
@@ -337,7 +363,13 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let content = UNMutableNotificationContent()
         content.title = "Time's up. You started."
         content.body = step
-        content.sound = soundOn ? .default : nil
+        if !soundOn {
+            content.sound = nil
+        } else if sound == "iphone" {
+            content.sound = .default
+        } else {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName("\(sound).mp3"))
+        }
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
         center.add(UNNotificationRequest(identifier: alarmId, content: content, trigger: trigger))
     }
@@ -369,6 +401,31 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(LiveTimerPlugin())
+        bridge?.registerPluginInstance(AppSettingsPlugin())
         print("[StartNow] LiveTimer plugin registered")
+    }
+}
+
+// Settings > Appearance. Makes the whole app (including the clock and battery at the top)
+// light, dark, or follow the phone. From the website: window.Capacitor.Plugins.AppSettings.setAppearance({mode}).
+@objc(AppSettingsPlugin)
+public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AppSettingsPlugin"
+    public let jsName = "AppSettings"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func setAppearance(_ call: CAPPluginCall) {
+        let mode = call.getString("mode") ?? "system"
+        let style: UIUserInterfaceStyle = mode == "dark" ? .dark : mode == "light" ? .light : .unspecified
+        DispatchQueue.main.async {
+            for scene in UIApplication.shared.connectedScenes {
+                for window in (scene as? UIWindowScene)?.windows ?? [] {
+                    window.overrideUserInterfaceStyle = style
+                }
+            }
+            call.resolve()
+        }
     }
 }
