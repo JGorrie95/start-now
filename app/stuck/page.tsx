@@ -7,6 +7,8 @@ import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer } from "@/app/native";
 import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
+import { getSound, type SoundId } from "@/app/preferences";
+import { unlockAudio, loadSound, ringAlarm, stopAlarm } from "@/app/sounds";
 
 type StepVariant = { step: string; reason: string };
 type Category = { test: (lower: string) => boolean; options: [StepVariant, StepVariant]; smaller: StepVariant };
@@ -151,29 +153,6 @@ function encouragement(progress: number) {
   return "Almost there. Keep it gentle.";
 }
 
-function playChime(ctx: AudioContext | null) {
-  if (!ctx) return;
-  try {
-    const now = ctx.currentTime;
-    [523.25, 659.25, 783.99].forEach((freq, i) => {
-      const start = now + i * 0.2;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.linearRampToValueAtTime(0.1, start + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 1.4);
-    });
-  } catch {
-    // Sound is a nice-to-have. If the browser refuses, stay quiet.
-  }
-}
-
 const WHITE = "#FFFFFF";
 const glassPill: React.CSSProperties = {
   height: "44px", padding: "0 16px", borderRadius: "22px", fontSize: "14px", fontWeight: 600,
@@ -202,7 +181,8 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   const [secondsLeft, setSecondsLeft] = useState(5 * 60);
   const [soundOn, setSoundOn] = useState(true);
   const endAtRef = useRef(0);
-  const audioRef = useRef<AudioContext | null>(null);
+  // The alarm sound picked in Settings, read when the timer starts.
+  const soundRef = useRef<SoundId>("chimes");
   // True when the iPhone app will sound the alarm itself (it works even when the phone is locked).
   const phoneAlarmRef = useRef(false);
 
@@ -219,7 +199,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
       if (remaining <= 0) {
         clearInterval(id);
         setStatus("celebrating");
-        if (soundOn && !phoneAlarmRef.current) playChime(audioRef.current);
+        if (soundOn && !phoneAlarmRef.current) ringAlarm(soundRef.current);
         if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
         successHaptic();
         lockScreenTimer.end(true);
@@ -238,16 +218,9 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
     };
   }, [status, secondsLeft]);
 
-  // Browsers only allow sound after a tap, so we get it ready on button presses.
+  // Browsers only allow sound after a tap, so we get the alarm sound ready on button presses.
   const prepareAudio = () => {
-    if (audioRef.current) {
-      void audioRef.current.resume();
-      return;
-    }
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (Ctor) audioRef.current = new Ctor();
+    if (unlockAudio()) void loadSound(soundRef.current);
   };
 
   const chooseMinutes = (m: number) => {
@@ -256,12 +229,14 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   };
 
   const start = () => {
+    stopAlarm();
+    soundRef.current = getSound();
     if (soundOn) prepareAudio();
     endAtRef.current = Date.now() + totalSeconds * 1000;
     setSecondsLeft(totalSeconds);
     setStatus("running");
     phoneAlarmRef.current = false;
-    void lockScreenTimer.start(step, totalSeconds, endAtRef.current, soundOn).then((phoneAlarm) => {
+    void lockScreenTimer.start(step, totalSeconds, endAtRef.current, soundOn, soundRef.current).then((phoneAlarm) => {
       phoneAlarmRef.current = phoneAlarm;
     });
   };
@@ -278,6 +253,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   };
 
   const reset = () => {
+    stopAlarm();
     setSecondsLeft(totalSeconds);
     setStatus("idle");
     lockScreenTimer.end();
@@ -285,6 +261,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
 
   // "I'm done": close the timer and count the step as done.
   const finish = () => {
+    stopAlarm();
     lockScreenTimer.end(true);
     setSecondsLeft(totalSeconds);
     setStatus("idle");
@@ -292,13 +269,27 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   };
 
   // Leaving this screen stops the timer here, so take it off the lock screen too.
-  useEffect(() => () => lockScreenTimer.end(), []);
+  useEffect(
+    () => () => {
+      stopAlarm();
+      lockScreenTimer.end();
+    },
+    [],
+  );
 
   // The alarm/mute button on the lock screen or in the Dynamic Island updates this screen too.
-  useEffect(() => lockScreenTimer.onSoundChange(setSoundOn), []);
+  useEffect(
+    () =>
+      lockScreenTimer.onSoundChange((on) => {
+        setSoundOn(on);
+        if (!on) stopAlarm();
+      }),
+    [],
+  );
 
   const toggleSound = () => {
     if (!soundOn) prepareAudio();
+    else stopAlarm();
     const next = !soundOn;
     setSoundOn(next);
     lockScreenTimer.setSound(next);

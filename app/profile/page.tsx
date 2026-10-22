@@ -155,6 +155,7 @@ export default function ProfilePage() {
           <BackButton className="web-only" />
           <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
             <button className="web-only" onClick={() => router.push("/friends")} style={navButton}>Friends</button>
+            <button onClick={() => router.push("/settings")} style={navButton}>Settings</button>
             <button onClick={handleSignOut} style={navButton}>Sign out</button>
           </div>
         </div>

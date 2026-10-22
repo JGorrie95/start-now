@@ -36,10 +36,11 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Runs before the page is drawn. Inside the iPhone app the shell adds a `Capacitor`
-// object to the page, and then we mark the page as "native" so the app-style layout
-// can switch on without a flash. In a normal browser nothing happens.
-const detectNativeApp = `(function(){try{var c=window.Capacitor;if(c&&c.isNativePlatform&&c.isNativePlatform()){document.documentElement.setAttribute("data-app","native");}}catch(e){}})();`;
+// Runs before the page is drawn, so nothing flashes:
+// 1. Inside the iPhone app the shell adds a `Capacitor` object to the page, and then we mark
+//    the page as "native" so the app-style layout switches on. In a normal browser nothing happens.
+// 2. If Light or Dark was picked in Settings, put it on the page (see preferences.ts).
+const detectNativeApp = `(function(){var d=document.documentElement;try{var c=window.Capacitor;if(c&&c.isNativePlatform&&c.isNativePlatform()){d.setAttribute("data-app","native");}}catch(e){}try{var t=localStorage.getItem("startnow-theme");if(t==="light"||t==="dark"){d.setAttribute("data-theme",t);}}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

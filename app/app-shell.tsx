@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNativeApp, tapHaptic } from "@/app/native";
+import { applyTheme } from "@/app/preferences";
 
 // The bottom button bar you see in real iPhone apps.
 // It only shows inside the iPhone app (CSS in globals.css hides it everywhere else),
@@ -49,6 +50,11 @@ const focusScreens = ["/stuck", "/invite"];
 export function AppShell() {
   const pathname = usePathname() ?? "/";
 
+  // Light / dark from Settings: also tells the iPhone app and Safari's top bar.
+  useEffect(() => {
+    applyTheme();
+  }, []);
+
   // A tiny buzz whenever you tap a button or link, like a real app.
   useEffect(() => {
     if (!isNativeApp()) return;
@@ -65,9 +71,11 @@ export function AppShell() {
   return (
     <nav className="app-tabbar" aria-label="Main">
       {tabs.map(({ href, label, Icon }) => {
-        // Signing in happens when you tap Friends or Profile, so it counts as the Profile tab.
+        // Signing in and Settings both live inside Profile, so they count as the Profile tab.
         const active =
-          href === "/" ? pathname === "/" : pathname.startsWith(href) || (href === "/profile" && pathname.startsWith("/auth"));
+          href === "/"
+            ? pathname === "/"
+            : pathname.startsWith(href) || (href === "/profile" && (pathname.startsWith("/auth") || pathname.startsWith("/settings")));
         return (
           <Link key={href} href={href} className="app-tab" aria-current={active ? "page" : undefined}>
             <span className="app-tab-pill">

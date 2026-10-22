@@ -4,15 +4,26 @@ import { useRouter } from "next/navigation";
 import { colors, fonts, radius, tint } from "@/app/theme";
 
 // A clear, easy-to-tap "Back" button (44px tall, the size Apple recommends for fingers).
-// It always takes you to the home screen.
-export function BackButton({ className, style }: { className?: string; style?: CSSProperties }) {
+// It takes you to the home screen, or to `href` when a page sits inside another one
+// (Settings goes back to your Profile).
+export function BackButton({
+  className,
+  style,
+  href = "/",
+  label = "Back to the home screen",
+}: {
+  className?: string;
+  style?: CSSProperties;
+  href?: string;
+  label?: string;
+}) {
   const router = useRouter();
   return (
     <button
       type="button"
-      onClick={() => router.push("/")}
+      onClick={() => router.push(href)}
       className={`press back-button${className ? ` ${className}` : ""}`}
-      aria-label="Back to the home screen"
+      aria-label={label}
       style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         height: "44px", padding: "0 18px 0 12px", borderRadius: radius.full,

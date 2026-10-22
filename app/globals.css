@@ -1,4 +1,7 @@
-/* ---------- Colours: light by default, dark when the device is in dark mode ---------- */
+/* ---------- Colours ----------
+   Light by default. Dark when the device is in dark mode, unless someone picked Light in
+   Settings. Settings puts data-theme="light" or "dark" on <html> (see preferences.ts);
+   "Automatic" removes it so the device decides. */
 :root {
   color-scheme: light dark;
   --c-mist: #EAE3D2;
@@ -21,7 +24,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --c-mist: #171614;
     --c-paper: #22201D;
     --c-field: #1A1916;
@@ -40,8 +43,32 @@
     --c-success: #4ADE80;
     --c-shadow: #000000;
   }
-  .grain-overlay { opacity: 0.05; }
+  :root:not([data-theme="light"]) .grain-overlay { opacity: 0.05; }
 }
+
+/* Dark picked in Settings: the same dark colours, whatever the device is set to. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-mist: #171614;
+  --c-paper: #22201D;
+  --c-field: #1A1916;
+  --c-field-border: #5A554C;
+  --c-ink: #ECE7DB;
+  --c-ink-soft: #BAB4A8;
+  --c-ink-faint: #8E8A81;
+  --c-pine: #5DB69B;
+  --c-pine-deep: #7CCBB2;
+  --c-on-accent: #0F1F1A;
+  --c-slate: #95A3BA;
+  --c-heather: #B5A5C0;
+  --c-disabled-bg: #2E2C28;
+  --c-disabled-text: #77736B;
+  --c-danger: #F87171;
+  --c-success: #4ADE80;
+  --c-shadow: #000000;
+}
+:root[data-theme="dark"] .grain-overlay { opacity: 0.05; }
+:root[data-theme="light"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -172,8 +199,9 @@ button, textarea, input { font-family: inherit; }
    iPhone app. Everything below does nothing in a normal browser. */
 
 /* Shown only in the app / hidden only in the app. */
-.app-only { display: none; }
+.app-only, .app-only-inline { display: none; }
 html[data-app="native"] .app-only { display: block; }
+html[data-app="native"] .app-only-inline { display: inline; }
 html[data-app="native"] .web-only { display: none !important; }
 
 /* Feel less like a web page: no text highlighting on press-and-hold, no blue tap flash,
@@ -274,7 +302,7 @@ html[data-app="native"] main:has(.back-button:not(.web-only)) {
   --g-rose: linear-gradient(150deg, #7A2E4A 0%, #974062 55%, #B4587A 100%);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --g-lagoon: linear-gradient(150deg, #173F35 0%, #22604F 55%, #2E7461 100%);
     --g-dusk: linear-gradient(150deg, #3B2E50 0%, #574573 55%, #725990 100%);
     --g-tide: linear-gradient(150deg, #233B5C 0%, #34507B 55%, #45679B 100%);
@@ -282,6 +310,22 @@ html[data-app="native"] main:has(.back-button:not(.web-only)) {
     --g-rose: linear-gradient(150deg, #62243B 0%, #7E3650 55%, #9A4866 100%);
   }
 }
+:root[data-theme="dark"] {
+  --g-lagoon: linear-gradient(150deg, #173F35 0%, #22604F 55%, #2E7461 100%);
+  --g-dusk: linear-gradient(150deg, #3B2E50 0%, #574573 55%, #725990 100%);
+  --g-tide: linear-gradient(150deg, #233B5C 0%, #34507B 55%, #45679B 100%);
+  --g-ember: linear-gradient(150deg, #6E2F18 0%, #8C4224 55%, #A9572F 100%);
+  --g-rose: linear-gradient(150deg, #62243B 0%, #7E3650 55%, #9A4866 100%);
+}
+
+/* Settings: the little "playing" bars next to a sound while you preview it. */
+@keyframes eq-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar { transform-origin: bottom; animation: eq-bounce 0.9s ease-in-out infinite; }
+.settings-row { transition: background 0.2s ease; }
+.settings-row:active { background: color-mix(in srgb, var(--c-ink) 6%, transparent) !important; }
 
 /* See-through "glass" text box and buttons that sit on a colour card. */
 .glass-field {
