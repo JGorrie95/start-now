@@ -171,7 +171,10 @@ export default function ProfilePage() {
           <div>
             <p style={{ margin: "0 0 6px", fontSize: "17px", fontWeight: 700 }}>What&apos;s yours stays yours.</p>
             <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
-              Privacy matters to us. Your streak, photo and settings stay on this phone. We don&apos;t collect them, and we will never sell or share your data with anyone.
+              Privacy matters to us. Without a friends account, your streak, photo and settings never leave this phone, and we collect nothing.
+            </p>
+            <p style={{ margin: "10px 0 0", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
+              If you choose to make a friends account, it&apos;s stored online so your friends can see it: your nickname, your streak, who&apos;s in your circle, and your photo only if you choose. That&apos;s all we collect, and we will never sell or share your data with anyone.
             </p>
           </div>
         </div>
@@ -179,7 +182,7 @@ export default function ProfilePage() {
         <h2 style={sectionHeading}>FRIENDS (OPTIONAL)</h2>
         <div style={{ ...card, padding: "20px" }}>
           <p style={{ margin: "0 0 14px", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
-            Want friends to cheer you on? Just pick a nickname, no email needed. Friends see your nickname and streak, and your photo only if you choose. We keep only that and who&apos;s in your circle, so your friends can see it.
+            Want friends to cheer you on? Make a friends account with just a nickname, no email needed. It&apos;s stored online so your friends can see it, and you can delete it any time in Settings.
           </p>
           <button type="button" onClick={() => router.push("/friends")} className="solid-press" style={{ height: "48px", padding: "0 22px", borderRadius: "16px", border: "none", background: colors.pineDeep, color: colors.onAccent, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
             Add friends

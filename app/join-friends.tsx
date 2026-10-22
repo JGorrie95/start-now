@@ -115,7 +115,7 @@ export function JoinFriendsForm({
     <div>
       {plain ? form : <div style={{ ...cardSurface, padding: "20px", borderRadius: "22px" }}>{form}</div>}
       <p style={{ fontSize: "13px", lineHeight: 1.55, color: colors.inkSoft, margin: "12px 6px 0", textAlign: "left" }}>
-        Friends see your nickname and your streak{localPhoto ? ", plus your photo if you tick the box" : ""}. We keep only that and who&apos;s in your circle, and we never sell or share it. There&apos;s no email or password, so this lives on this phone: if you delete the app, it&apos;s gone.
+        Your friends account is stored online so your friends can see it: your nickname, your streak and who&apos;s in your circle{localPhoto ? ", plus your photo if you tick the box" : ""}. That&apos;s all we collect, and we never sell or share it. There&apos;s no email or password, so it&apos;s tied to this phone: if you delete the app, it&apos;s gone.
       </p>
       <p style={{ textAlign: "center", margin: "14px 0 0" }}>
         <Link href={signInHref} style={{ color: colors.inkSoft, fontSize: "14px", fontWeight: 600, textUnderlineOffset: "3px" }}>
