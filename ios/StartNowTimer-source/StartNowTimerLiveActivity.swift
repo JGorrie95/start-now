@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import WidgetKit
 import SwiftUI
 
@@ -8,9 +9,23 @@ struct StartNowTimerAttributes: ActivityAttributes {
         var endsAt: Date
         var pausedSecondsLeft: Int?
         var done: Bool
+        var soundOn: Bool
     }
     var step: String
     var totalSeconds: Int
+}
+
+// The alarm/mute button. iPhone runs the real action inside the app
+// (App/AppDelegate.swift has the working copy with the same name).
+@available(iOS 17.0, *)
+struct ToggleTimerSoundIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "Turn the timer alarm on or off"
+
+    init() {}
+
+    func perform() async throws -> some IntentResult {
+        .result()
+    }
 }
 
 private let mint = Color(red: 124 / 255, green: 203 / 255, blue: 178 / 255)
@@ -59,6 +74,29 @@ struct TimerText: View {
     }
 }
 
+// Tap to switch the "time's up" alarm between on and muted.
+struct SoundButton: View {
+    let soundOn: Bool
+
+    var body: some View {
+        if #available(iOS 17.0, *) {
+            Button(intent: ToggleTimerSoundIntent()) {
+                HStack(spacing: 5) {
+                    Image(systemName: soundOn ? "bell.fill" : "bell.slash.fill")
+                    Text(soundOn ? "Alarm on" : "Muted")
+                }
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.white.opacity(soundOn ? 0.16 : 0.10)))
+                .foregroundStyle(soundOn ? mint : Color.white.opacity(0.8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(soundOn ? "Alarm is on. Tap to mute." : "Alarm is muted. Tap to turn it on.")
+        }
+    }
+}
+
 struct TimerProgress: View {
     let context: ActivityViewContext<StartNowTimerAttributes>
 
@@ -96,6 +134,9 @@ struct StartNowTimerLiveActivity: Widget {
                             .foregroundStyle(.white)
                     }
                     Spacer(minLength: 0)
+                    if !context.state.done {
+                        SoundButton(soundOn: context.state.soundOn)
+                    }
                 }
                 Text(context.attributes.step)
                     .font(.subheadline)
@@ -134,8 +175,13 @@ struct StartNowTimerLiveActivity: Widget {
                             .font(.subheadline)
                             .foregroundStyle(.white.opacity(0.9))
                             .lineLimit(2)
-                        TimerProgress(context: context)
-                            .tint(mint)
+                        HStack(spacing: 12) {
+                            TimerProgress(context: context)
+                                .tint(mint)
+                            if !context.state.done {
+                                SoundButton(soundOn: context.state.soundOn)
+                            }
+                        }
                     }
                     .padding(.horizontal, 4)
                 }
