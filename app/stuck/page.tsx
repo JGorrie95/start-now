@@ -203,6 +203,8 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   const [soundOn, setSoundOn] = useState(true);
   const endAtRef = useRef(0);
   const audioRef = useRef<AudioContext | null>(null);
+  // True when the iPhone app will sound the alarm itself (it works even when the phone is locked).
+  const phoneAlarmRef = useRef(false);
 
   const totalSeconds = minutes * 60;
   const colour = moods[mood];
@@ -217,7 +219,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
       if (remaining <= 0) {
         clearInterval(id);
         setStatus("celebrating");
-        if (soundOn) playChime(audioRef.current);
+        if (soundOn && !phoneAlarmRef.current) playChime(audioRef.current);
         if ("vibrate" in navigator) navigator.vibrate([120, 80, 120]);
         successHaptic();
         lockScreenTimer.end(true);
@@ -258,7 +260,10 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
     endAtRef.current = Date.now() + totalSeconds * 1000;
     setSecondsLeft(totalSeconds);
     setStatus("running");
-    lockScreenTimer.start(step, totalSeconds, endAtRef.current);
+    phoneAlarmRef.current = false;
+    void lockScreenTimer.start(step, totalSeconds, endAtRef.current, soundOn).then((phoneAlarm) => {
+      phoneAlarmRef.current = phoneAlarm;
+    });
   };
 
   const pause = () => {
@@ -289,9 +294,14 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
   // Leaving this screen stops the timer here, so take it off the lock screen too.
   useEffect(() => () => lockScreenTimer.end(), []);
 
+  // The alarm/mute button on the lock screen or in the Dynamic Island updates this screen too.
+  useEffect(() => lockScreenTimer.onSoundChange(setSoundOn), []);
+
   const toggleSound = () => {
     if (!soundOn) prepareAudio();
-    setSoundOn((s) => !s);
+    const next = !soundOn;
+    setSoundOn(next);
+    lockScreenTimer.setSound(next);
   };
 
   if (status === "idle") {
@@ -325,7 +335,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
         </button>
         <div style={{ marginTop: "10px", textAlign: "center" }}>
           <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: colors.inkSoft, fontSize: "14px", cursor: "pointer", padding: "10px", fontFamily: fonts.body }}>
-            {soundOn ? "Soft chime when time is up: on" : "Soft chime when time is up: off"}
+            {soundOn ? "Alarm when time is up: on" : "Alarm when time is up: muted"}
           </button>
         </div>
       </div>
@@ -334,7 +344,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
 
   const soundToggleOnColour = (
     <button onClick={toggleSound} aria-pressed={soundOn} style={{ background: "none", border: "none", color: "rgba(255, 255, 255, 0.88)", fontSize: "14px", cursor: "pointer", padding: "10px", fontFamily: fonts.body }}>
-      {soundOn ? "Soft chime: on" : "Soft chime: off"}
+      {soundOn ? "Alarm: on" : "Alarm: muted"}
     </button>
   );
 

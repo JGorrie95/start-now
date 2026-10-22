@@ -9,7 +9,9 @@ type Haptics = {
 };
 
 type LiveTimer = {
-  start: (options: { step: string; totalSeconds: number; endsAt: number }) => Promise<unknown>;
+  start: (options: { step: string; totalSeconds: number; endsAt: number; soundOn: boolean }) => Promise<{ started?: boolean; alarm?: boolean }>;
+  setSound: (options: { soundOn: boolean }) => Promise<unknown>;
+  addListener: (event: "soundChanged", callback: (data: { soundOn: boolean }) => void) => Promise<{ remove: () => void }> | { remove: () => void };
   pause: (options: { secondsLeft: number }) => Promise<unknown>;
   resume: (options: { endsAt: number }) => Promise<unknown>;
   end: (options: { done: boolean }) => Promise<unknown>;
@@ -62,19 +64,42 @@ function liveTimerPlugin(): LiveTimer | undefined {
 }
 
 export const lockScreenTimer = {
-  start(step: string, totalSeconds: number, endsAt: number) {
-    if (!isNativeApp()) return;
+  // Resolves true when the iPhone itself will sound the alarm at the end
+  // (then the page doesn't need to play its own chime).
+  async start(step: string, totalSeconds: number, endsAt: number, soundOn: boolean): Promise<boolean> {
+    if (!isNativeApp()) return false;
     // These [StartNow] lines show up in Xcode's console, to help check the iPhone app.
     const plugin = liveTimerPlugin();
     if (!plugin) {
       console.log("[StartNow] lock screen timer: the LiveTimer part is missing from this app build");
-      return;
+      return false;
     }
-    console.log("[StartNow] lock screen timer: asking the iPhone to start it");
-    plugin
-      .start({ step, totalSeconds, endsAt })
-      .then((reply) => console.log(`[StartNow] lock screen timer reply: ${JSON.stringify(reply)}`))
-      .catch((error: unknown) => console.log(`[StartNow] lock screen timer error: ${error instanceof Error ? error.message : String(error)}`));
+    try {
+      const reply = await plugin.start({ step, totalSeconds, endsAt, soundOn });
+      console.log(`[StartNow] lock screen timer reply: ${JSON.stringify(reply)}`);
+      return !!reply?.alarm;
+    } catch (error) {
+      console.log(`[StartNow] lock screen timer error: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  },
+  setSound(soundOn: boolean) {
+    void liveTimerPlugin()?.setSound?.({ soundOn })?.catch(() => {});
+  },
+  // Hears the alarm/mute button on the lock screen and in the Dynamic Island.
+  onSoundChange(callback: (soundOn: boolean) => void): () => void {
+    const plugin = liveTimerPlugin();
+    if (!plugin?.addListener) return () => {};
+    let handle: { remove: () => void } | null = null;
+    let cancelled = false;
+    void Promise.resolve(plugin.addListener("soundChanged", (data) => callback(!!data?.soundOn))).then((h) => {
+      handle = h;
+      if (cancelled) h.remove();
+    });
+    return () => {
+      cancelled = true;
+      handle?.remove();
+    };
   },
   pause(secondsLeft: number) {
     void liveTimerPlugin()?.pause({ secondsLeft })?.catch(() => {});
