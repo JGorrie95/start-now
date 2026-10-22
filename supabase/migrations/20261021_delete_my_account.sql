@@ -22,3 +22,8 @@ $$;
 
 revoke all on function public.delete_my_account() from public, anon;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- Lets people delete their own profile photo (used by "Leave friends" / "Delete my account").
+create policy avatar_user_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = (auth.uid())::text);
