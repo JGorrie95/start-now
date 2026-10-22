@@ -24,6 +24,17 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.startnowadhd.StartNow</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>startnow</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Start Now rings an alarm when your timer is up, even if your phone is on silent.</string>
 	<key>NSCameraUsageDescription</key>

@@ -7,6 +7,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
+        // Opened by tapping the widget while the app was closed.
+        if let link = connectionOptions.urlContexts.first?.url, let page = DeepLink.webURL(from: link) {
+            DeepLink.pending = page
+        }
+
         window = UIWindow(windowScene: windowScene)
         // MainViewController (in AppDelegate.swift) is Capacitor's screen plus our lock screen timer.
         window?.rootViewController = MainViewController()
@@ -16,6 +21,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        // Tapped the widget while the app was already open.
+        if let link = URLContexts.first?.url, let page = DeepLink.webURL(from: link) {
+            (window?.rootViewController as? MainViewController)?.open(page)
+            return
+        }
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 

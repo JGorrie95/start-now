@@ -4,6 +4,7 @@ import Capacitor
 import ActivityKit
 import AppIntents
 import UserNotifications
+import WidgetKit
 #if canImport(AlarmKit)
 import AlarmKit
 #endif
@@ -399,9 +400,18 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 // The app's main screen. Same as Capacitor's, plus our LiveTimer plugin.
 // SceneDelegate.swift starts the app with this screen.
 class MainViewController: CAPBridgeViewController {
+    func open(_ url: URL) {
+        webView?.load(URLRequest(url: url))
+    }
+
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(LiveTimerPlugin())
         bridge?.registerPluginInstance(AppSettingsPlugin())
+        // Opened from the widget while the app was closed: go to that page once it's ready.
+        if let link = DeepLink.pending {
+            DeepLink.pending = nil
+            DispatchQueue.main.async { [weak self] in self?.open(link) }
+        }
         print("[StartNow] LiveTimer plugin registered")
     }
 }
@@ -413,7 +423,8 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "AppSettingsPlugin"
     public let jsName = "AppSettings"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setWidgetData", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func setAppearance(_ call: CAPPluginCall) {
@@ -427,5 +438,32 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             call.resolve()
         }
+    }
+
+    // The home screen widget shows the streak. The website sends it here whenever it changes.
+    // It reaches the widget through the shared "App Groups" space (StartNowHomeWidget.swift).
+    @objc func setWidgetData(_ call: CAPPluginCall) {
+        let shared = UserDefaults(suiteName: "group.app.startnowadhd.StartNow")
+        shared?.set(max(0, call.getInt("count") ?? 0), forKey: "streakCount")
+        shared?.set(call.getString("lastDate"), forKey: "streakLastDate")
+        shared?.set(true, forKey: "streakKnown")
+        WidgetCenter.shared.reloadAllTimelines()
+        call.resolve()
+    }
+}
+
+// Links from the widget, like startnow://stuck?task=I%20feel%20overwhelmed,
+// open that page of the website inside the app.
+enum DeepLink {
+    static var pending: URL?
+
+    static func webURL(from link: URL) -> URL? {
+        guard link.scheme == "startnow" else { return nil }
+        var parts = URLComponents()
+        parts.scheme = "https"
+        parts.host = "startnowadhd.app"
+        parts.path = link.host == "stuck" ? "/stuck" : "/"
+        parts.queryItems = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems
+        return parts.url
     }
 }
