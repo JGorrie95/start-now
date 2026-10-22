@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
-import { successHaptic, lockScreenTimer } from "@/app/native";
+import { successHaptic, lockScreenTimer, syncWidget } from "@/app/native";
 import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
 import { getSound, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
 import { unlockAudio, loadSound, ringAlarm, stopAlarm } from "@/app/sounds";
@@ -517,6 +517,7 @@ function StuckContent() {
         setDoneState({ status: "alreadyDone", streak: res.streak ?? 0 });
       } else if ("streak" in res && res.streak !== undefined) {
         setDoneState({ status: "success", streak: res.streak });
+        syncWidget(res.streak, localDate());
         successHaptic();
       } else {
         setDoneState({ status: "error" });

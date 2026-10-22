@@ -10,6 +10,7 @@ import { Avatar } from "@/app/avatar";
 import { Reveal } from "@/app/reveal";
 import { moods, quickStarts } from "@/app/moods";
 import { subscribePreferences, getLocalPhoto, getLocalStreak, streakNow, NO_STREAK } from "@/app/preferences";
+import { syncWidget } from "@/app/native";
 
 // Today's date for the header, e.g. "SATURDAY, OCTOBER 17", worked out on the phone in its own
 // time zone. The server leaves it blank so the page never shows the server's date.
@@ -55,10 +56,16 @@ export default function HomePage() {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setAccount(user ? "signedIn" : "signedOut");
-      if (!user) return;
+      if (!user) {
+        // Keep the home screen widget in step with the streak on this phone.
+        const phone = getLocalStreak();
+        syncWidget(phone.count, phone.lastDate);
+        return;
+      }
       const { data } = await supabase.from("profiles").select("streak_count, last_completed_date, avatar_url").eq("id", user.id).single();
       if (!data) return;
       setAvatarUrl(data.avatar_url ?? null);
+      syncWidget(data.streak_count ?? 0, data.last_completed_date ?? null);
       const now = streakNow({ count: data.streak_count ?? 0, longest: 0, lastDate: data.last_completed_date });
       setStreak({ count: now.count, doneToday: now.doneToday });
     });

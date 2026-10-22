@@ -20,6 +20,7 @@ type LiveTimer = {
 
 type AppSettings = {
   setAppearance: (options: { mode: string }) => Promise<unknown>;
+  setWidgetData?: (options: { count: number; lastDate: string | null }) => Promise<unknown>;
 };
 
 type CapacitorBridge = {
@@ -141,5 +142,15 @@ export function setNativeAppearance(mode: "system" | "light" | "dark") {
     void bridge()?.Plugins?.AppSettings?.setAppearance({ mode })?.catch(() => {});
   } catch {
     // Older copy of the app. The page itself still switches.
+  }
+}
+
+// The home screen widget shows your streak. This hands it the latest numbers
+// (iPhone app only; older copies of the app just ignore it).
+export function syncWidget(count: number, lastDate: string | null) {
+  try {
+    void bridge()?.Plugins?.AppSettings?.setWidgetData?.({ count, lastDate })?.catch(() => {});
+  } catch {
+    // No widget support here. That is fine.
   }
 }

@@ -1,7 +1,7 @@
 // Settings that are saved on this phone or computer (in the browser), so they work
 // without signing in: the light/dark look and the alarm sound.
 // Pages read them with useSyncExternalStore(subscribePreferences, getTheme, ...).
-import { isNativeApp, setNativeAppearance } from "@/app/native";
+import { isNativeApp, setNativeAppearance, syncWidget } from "@/app/native";
 
 export type ThemeChoice = "system" | "light" | "dark";
 export type SoundId = "iphone" | "chimes" | "bell" | "bounce" | "beeps";
@@ -127,6 +127,7 @@ export function getLocalStreak(): LocalStreak {
 
 export function saveLocalStreak(streak: LocalStreak) {
   write(STREAK_KEY, JSON.stringify(streak));
+  syncWidget(streak.count, streak.lastDate);
 }
 
 // What a streak shows right now. It only counts if the last step was today or yesterday.
