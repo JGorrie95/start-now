@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
 import { colors, fonts, cardSurface, pageBg } from "@/app/theme";
+import Link from "next/link";
 import { BackButton } from "@/app/back-button";
 
 export const metadata: Metadata = {
@@ -80,7 +81,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="How long we keep it">
-          <p style={{ ...p, margin: 0 }}>We keep a friends account until you delete it. In the app, go to Settings and tap Leave friends: your nickname, streak, circle and photo are deleted. If you signed in with email, or anything didn&apos;t delete properly, email us and we&apos;ll delete it within 30 days.</p>
+          <p style={{ ...p, margin: 0 }}>We keep an account until you delete it. In Settings, tap Leave friends (nickname accounts) or Delete my account (email accounts): your nickname or email, streak, circle, photo and the account itself are deleted. If anything doesn&apos;t delete properly, email us and we&apos;ll delete it within 30 days.</p>
         </Section>
 
         <Section title="Your rights">
@@ -97,7 +98,7 @@ export default function PrivacyPage() {
 
         <Section title="Contact">
           <p style={{ ...p, margin: 0 }}>
-            Questions or requests: <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: colors.pineDeep, fontWeight: 700 }}>{CONTACT_EMAIL}</a>. Start Now is made in British Columbia, Canada.
+            Questions or requests: <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: colors.pineDeep, fontWeight: 700 }}>{CONTACT_EMAIL}</a>. Start Now is made in British Columbia, Canada. See also our <Link href="/terms" style={{ color: colors.pineDeep, fontWeight: 700 }}>terms of use</Link>.
           </p>
         </Section>
       </div>

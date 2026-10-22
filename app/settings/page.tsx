@@ -454,14 +454,33 @@ export default function SettingsPage() {
               <div style={{ padding: "16px", borderBottom: `1px solid ${tint(colors.ink, 0.07)}`, fontSize: "14px", color: colors.inkSoft }}>
                 Signed in as <strong style={{ color: colors.ink, wordBreak: "break-all" }}>{account.email}</strong>
               </div>
-              <button type="button" onClick={() => void signOut()} className="settings-row" style={{ width: "100%", padding: "16px", border: "none", background: "transparent", textAlign: "left", fontSize: "16px", fontWeight: 700, color: colors.danger, cursor: "pointer", fontFamily: fonts.body }}>
+              <button type="button" onClick={() => void signOut()} className="settings-row" style={{ width: "100%", padding: "16px", border: "none", borderBottom: `1px solid ${tint(colors.ink, 0.07)}`, background: "transparent", textAlign: "left", fontSize: "16px", fontWeight: 700, color: colors.ink, cursor: "pointer", fontFamily: fonts.body }}>
                 Sign out
               </button>
+              {confirmLeave ? (
+                <div style={{ padding: "16px" }}>
+                  <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: colors.ink }}>
+                    Delete your account for good? Your email, username, photo and circle are deleted and can&apos;t be brought back. Your streak stays on this phone.
+                  </p>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button type="button" onClick={() => void leave()} disabled={leaving} className="solid-press" style={{ ...pillButton, background: colors.danger, color: "#FFFFFF" }}>
+                      {leaving ? "Deleting…" : "Delete my account"}
+                    </button>
+                    <button type="button" onClick={() => setConfirmLeave(false)} disabled={leaving} style={textButton}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmLeave(true)} className="settings-row" style={{ width: "100%", padding: "16px", border: "none", background: "transparent", textAlign: "left", fontSize: "16px", fontWeight: 700, color: colors.danger, cursor: "pointer", fontFamily: fonts.body }}>
+                  Delete my account
+                </button>
+              )}
             </div>
           </>
         )}
         <p style={{ textAlign: "center", margin: "30px 0 0" }}>
           <Link href="/privacy" style={{ color: colors.inkSoft, fontSize: "14px", fontWeight: 600, textUnderlineOffset: "3px" }}>Privacy policy</Link>
+          <span style={{ color: colors.inkFaint, margin: "0 10px" }}>·</span>
+          <Link href="/terms" style={{ color: colors.inkSoft, fontSize: "14px", fontWeight: 600, textUnderlineOffset: "3px" }}>Terms of use</Link>
         </p>
       </div>
     </main>

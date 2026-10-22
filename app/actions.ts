@@ -185,20 +185,28 @@ export async function addFriendByInvite(inviteCode: string) {
   return { success: true, inviterUsername: inviter.username };
 }
 
-// Settings > "Leave friends" (for friends accounts without an email). Removes them from
-// everyone's circle and deletes what the database held about them. Their streak was
-// already copied back onto their phone before this runs.
+// Settings > "Leave friends" / "Delete my account". Deletes everything the database holds
+// about this person: their circle, streak, photo, profile, and the account itself.
+// Their streak was already copied back onto their phone before this runs.
 export async function leaveFriends() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated" };
 
-  await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-  await supabase.from("streak_completions").delete().eq("user_id", user.id);
+  // Photos can only be removed through Supabase's Storage, so do that first.
   await supabase.storage.from("avatars").remove([`${user.id}/avatar.jpg`]);
-  const { error } = await supabase.from("profiles").delete().eq("id", user.id);
-  if (error) console.error("leaveFriends profile delete error:", error);
+
+  // delete_my_account (supabase/migrations) removes the rows and the account in one go.
+  const { error: rpcError } = await supabase.rpc("delete_my_account");
+  if (rpcError) {
+    // Not set up yet: remove what we can row by row.
+    console.error("delete_my_account error:", rpcError);
+    await supabase.from("friendships").delete().or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+    await supabase.from("streak_completions").delete().eq("user_id", user.id);
+    const { error } = await supabase.from("profiles").delete().eq("id", user.id);
+    if (error) console.error("leaveFriends profile delete error:", error);
+  }
 
   revalidatePath("/friends");
-  return { success: true };
+  return { success: true, fullyDeleted: !rpcError };
 }
