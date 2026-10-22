@@ -48,6 +48,24 @@ async function squarePhoto(file: File, size = 512): Promise<Blob> {
   );
 }
 
+// A small photo for people without an account. It becomes a tiny picture saved on this
+// device only (nothing is uploaded). Resolves with the picture, or a friendly error.
+export async function makeLocalPhoto(file: File): Promise<{ url?: string; error?: string }> {
+  if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) return { error: "Please choose a photo." };
+  try {
+    const blob = await squarePhoto(file, 256);
+    const url = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("That photo couldn't be opened."));
+      reader.readAsDataURL(blob);
+    });
+    return { url };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "That photo couldn't be opened." };
+  }
+}
+
 // Saves a new profile photo. Resolves with its web address, or a friendly error.
 export async function uploadAvatar(file: File): Promise<{ url?: string; error?: string }> {
   if (!file.type.startsWith("image/") && !/\.(heic|heif)$/i.test(file.name)) return { error: "Please choose a photo." };

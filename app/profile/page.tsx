@@ -1,11 +1,13 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { createProfile } from "@/app/actions";
 import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
-import { SparkMark } from "@/app/spark-mark";
+import { Avatar, uploadAvatar, makeLocalPhoto } from "@/app/avatar";
+import { subscribePreferences, getLocalPhoto, setLocalPhoto } from "@/app/preferences";
 
 type Profile = {
   username: string;
@@ -27,6 +29,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
+  const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const [username, setUsername] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +41,8 @@ export default function ProfilePage() {
   const loadProfile = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/auth"); return; }
+    // No account is fine: they get the on-device profile below.
+    if (!user) { setSignedOut(true); setLoading(false); return; }
 
     const { data } = await supabase
       .from("profiles")
@@ -47,7 +52,7 @@ export default function ProfilePage() {
 
     if (!data) { setNeedsSetup(true); } else { setProfile(data); }
     setLoading(false);
-  }, [router]);
+  }, []);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
 
@@ -70,35 +75,20 @@ export default function ProfilePage() {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // so picking the same photo again still works
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setUploadError("Image must be under 5MB."); return; }
-    if (!file.type.startsWith("image/")) { setUploadError("Please choose an image file."); return; }
-
     setUploading(true);
     setUploadError("");
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/auth"); return; }
-
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${user.id}/avatar.${ext}`;
-
-    const { error: upErr } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true, cacheControl: "3600" });
-
-    if (upErr) {
-      console.error("Avatar upload error:", upErr);
-      setUploadError("Upload failed. Make sure the 'avatars' storage bucket exists.");
-      setUploading(false);
-      return;
+    if (signedOut) {
+      // No account: the photo is saved on this device only.
+      const result = await makeLocalPhoto(file);
+      if (result.url) setLocalPhoto(result.url);
+      else setUploadError(result.error ?? "That photo couldn't be saved.");
+    } else {
+      const result = await uploadAvatar(file);
+      if (result.error) setUploadError(result.error);
+      else await loadProfile();
     }
-
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-    const bustedUrl = `${publicUrl}?t=${Date.now()}`;
-
-    await supabase.from("profiles").update({ avatar_url: bustedUrl }).eq("id", user.id);
-    await loadProfile();
     setUploading(false);
   };
 
@@ -114,6 +104,59 @@ export default function ProfilePage() {
   if (loading) return (
     <main style={bg}>
       <div style={{ maxWidth: "480px", margin: "0 auto", textAlign: "center", paddingTop: "80px", color: colors.inkFaint }}>Loading…</div>
+    </main>
+  );
+
+  if (signedOut) return (
+    <main style={bg}>
+      <div className="grain-overlay" />
+      <div style={{ maxWidth: "480px", margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <BackButton className="web-only" style={{ marginBottom: "32px" }} />
+
+        <div style={{ ...card, marginBottom: "14px", textAlign: "center", padding: "32px 24px" }}>
+          <label style={{ display: "block", width: "104px", height: "104px", margin: "0 auto 16px", cursor: uploading ? "wait" : "pointer", position: "relative" }}>
+            <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} style={{ display: "none" }} />
+            <span style={{ display: "block", opacity: uploading ? 0.5 : 1 }}>
+              <Avatar url={localPhoto} size={104} />
+            </span>
+            <span aria-hidden="true" style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "34px", height: "34px", borderRadius: "50%", background: colors.pineDeep, color: colors.onAccent, border: `3px solid ${colors.paper}`, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5h3l1.8-2.5h6.4L17 8.5h3V19H4z" /><circle cx="12" cy="13.2" r="3.2" /></svg>
+            </span>
+          </label>
+          <h1 style={{ fontSize: "26px", fontWeight: 700, letterSpacing: "-0.03em", margin: "0 0 6px", fontFamily: fonts.display }}>Your profile</h1>
+          <p style={{ color: colors.inkSoft, fontSize: "14px", lineHeight: 1.5, margin: 0 }}>
+            {uploading ? "Saving…" : localPhoto ? "Tap your photo to change it." : "Tap the circle to add a photo."}
+            {" "}It stays on this phone. Nothing is uploaded.
+          </p>
+          {localPhoto && !uploading && (
+            <button type="button" onClick={() => setLocalPhoto(null)} style={{ marginTop: "10px", background: "none", border: "none", color: colors.inkSoft, fontSize: "14px", fontWeight: 600, cursor: "pointer", fontFamily: fonts.body }}>
+              Remove photo
+            </button>
+          )}
+          {uploadError && <p role="alert" style={{ color: colors.danger, fontSize: "13px", margin: "8px 0 0" }}>{uploadError}</p>}
+        </div>
+
+        <Link href="/settings" className="settings-row" style={{ ...card, display: "flex", alignItems: "center", gap: "14px", padding: "16px 18px", marginBottom: "14px", textDecoration: "none", color: colors.ink }}>
+          <span style={{ width: "44px", height: "44px", borderRadius: "14px", background: tint(colors.pine, 0.14), color: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2.2" /><circle cx="9" cy="17" r="2.2" /></svg>
+          </span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: "block", fontSize: "17px", fontWeight: 700 }}>Settings</span>
+            <span style={{ display: "block", fontSize: "14px", color: colors.inkSoft, marginTop: "2px" }}>Alarm sound and dark mode</span>
+          </span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.inkFaint} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+        </Link>
+
+        <div style={{ padding: "6px 6px 0" }}>
+          <p style={{ margin: "18px 0 6px", fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft }}>OPTIONAL</p>
+          <p style={{ margin: "0 0 12px", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
+            You don&apos;t need an account to use Start Now. If you want friends to see your streak, you can make a free one with just your email. We only keep your email, a username and your streak.
+          </p>
+          <button type="button" onClick={() => router.push("/auth")} className="solid-press" style={{ height: "48px", padding: "0 20px", borderRadius: "16px", border: `2px solid ${colors.pineDeep}`, background: "transparent", color: colors.pineDeep, fontSize: "15px", fontWeight: 700, cursor: "pointer", fontFamily: fonts.body }}>
+            Create an account or sign in
+          </button>
+        </div>
+      </div>
     </main>
   );
 
@@ -163,14 +206,7 @@ export default function ProfilePage() {
         <div style={{ ...card, marginBottom: "16px", textAlign: "center", padding: "32px 24px" }}>
           <label style={{ display: "block", width: "84px", height: "84px", margin: "0 auto 16px", cursor: uploading ? "wait" : "pointer", position: "relative" }}>
             <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} style={{ display: "none" }} />
-            {profile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt={profile.username} style={{ width: "84px", height: "84px", borderRadius: radius.md, objectFit: "cover", border: `2px solid ${tint(colors.pine, 0.3)}` }} />
-            ) : (
-              <div style={{ width: "84px", height: "84px", borderRadius: radius.md, background: `linear-gradient(135deg, ${colors.pine}, ${colors.pineDeep})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <SparkMark size={36} stroke={colors.onAccent} dot={colors.onAccent} />
-              </div>
-            )}
+            <Avatar url={profile?.avatar_url} size={84} label={profile?.username ?? "Your profile photo"} />
             <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: `2px solid ${colors.paper}`, color: colors.onAccent }}>
               {uploading ? "…" : "📷"}
             </div>

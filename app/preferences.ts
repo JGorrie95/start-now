@@ -37,8 +37,8 @@ export function subscribePreferences(callback: () => void) {
   listeners.add(callback);
   // A change made in another tab.
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== THEME_KEY && event.key !== SOUND_KEY) return;
-    if (event.key) memory.delete(event.key);
+    if (!event.key?.startsWith("startnow-")) return;
+    memory.delete(event.key);
     if (event.key === THEME_KEY) applyTheme();
     callback();
   };
@@ -73,6 +73,19 @@ export function applyTheme(choice: ThemeChoice = getTheme()) {
     meta.content = choice === "system" ? meta.dataset.original : choice === "dark" ? "#171614" : "#2F6F5E";
   });
   setNativeAppearance(choice);
+}
+
+// ---------- Profile photo without an account ----------
+// Saved only on this phone or computer (in the browser). It is never uploaded anywhere.
+
+const PHOTO_KEY = "startnow-local-photo";
+
+export function getLocalPhoto(): string | null {
+  return read(PHOTO_KEY) || null;
+}
+
+export function setLocalPhoto(url: string | null) {
+  write(PHOTO_KEY, url ?? "");
 }
 
 // ---------- Alarm sound ----------

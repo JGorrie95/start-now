@@ -3,7 +3,6 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, radius, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
-import Link from "next/link";
 import { SparkMark } from "@/app/spark-mark";
 
 export default function AuthPage() {
@@ -93,9 +92,6 @@ export default function AuthPage() {
           </button>
         </form>
       </div>
-      <Link href="/settings" style={{ position: "absolute", left: 0, right: 0, bottom: "calc(env(safe-area-inset-bottom) + 110px)", textAlign: "center", color: colors.inkSoft, fontSize: "15px", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: "3px", zIndex: 1 }}>
-        Settings: alarm sound and dark mode
-      </Link>
     </main>
   );
 }

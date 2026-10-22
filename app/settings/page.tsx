@@ -6,9 +6,9 @@ import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { moods } from "@/app/moods";
-import { Avatar, uploadAvatar, removeAvatar } from "@/app/avatar";
+import { Avatar, uploadAvatar, removeAvatar, makeLocalPhoto } from "@/app/avatar";
 import { alarmSounds, previewSound, stopPreviewSound, type AlarmSound } from "@/app/sounds";
-import { subscribePreferences, getTheme, setTheme, getSound, setSound, type ThemeChoice, type SoundId } from "@/app/preferences";
+import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, type ThemeChoice, type SoundId } from "@/app/preferences";
 import { testPhoneAlarm } from "@/app/native";
 
 type Account =
@@ -147,6 +147,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const theme = useSyncExternalStore(subscribePreferences, getTheme, () => "system" as ThemeChoice);
   const sound = useSyncExternalStore(subscribePreferences, getSound, () => "chimes" as SoundId);
+  const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const [playing, setPlaying] = useState<SoundId | null>(null);
   const [account, setAccount] = useState<Account>({ status: "loading" });
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -214,9 +215,17 @@ export default function SettingsPage() {
   const changePhoto = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = ""; // so picking the same photo again still works
-    if (!file || account.status !== "signedIn") return;
+    if (!file || account.status === "loading") return;
     setPhotoBusy(true);
     setPhotoError("");
+    if (account.status === "signedOut") {
+      // No account: the photo stays on this device.
+      const local = await makeLocalPhoto(file);
+      if (local.url) setLocalPhoto(local.url);
+      else setPhotoError(local.error ?? "That photo couldn't be saved.");
+      setPhotoBusy(false);
+      return;
+    }
     const result = await uploadAvatar(file);
     if (result.url) setAccount({ ...account, avatarUrl: result.url });
     else setPhotoError(result.error ?? "The photo didn't save.");
@@ -285,11 +294,27 @@ export default function SettingsPage() {
             </>
           ) : (
             <>
-              <Avatar url={null} size={72} label="No profile photo yet" />
+              <label style={{ position: "relative", cursor: photoBusy ? "wait" : "pointer", flexShrink: 0 }}>
+                <input type="file" accept="image/*" onChange={changePhoto} disabled={photoBusy} style={{ display: "none" }} />
+                <span style={{ display: "block", opacity: photoBusy ? 0.5 : 1 }}>
+                  <Avatar url={localPhoto} size={72} />
+                </span>
+                <span aria-hidden="true" style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, color: colors.onAccent, border: `3px solid ${colors.paper}`, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5h3l1.8-2.5h6.4L17 8.5h3V19H4z" /><circle cx="12" cy="13.2" r="3.2" /></svg>
+                </span>
+              </label>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "16px", fontWeight: 700 }}>Add a profile photo</div>
-                <div style={{ fontSize: "14px", lineHeight: 1.45, color: colors.inkSoft, marginTop: "2px" }}>Sign in to add a photo and keep your streak.</div>
-                <button type="button" onClick={() => router.push("/auth")} className="solid-press" style={{ ...pillButton, marginTop: "10px" }}>Sign in</button>
+                <div style={{ fontSize: "16px", fontWeight: 700 }}>Your photo</div>
+                <div style={{ fontSize: "13px", lineHeight: 1.45, color: colors.inkSoft, marginTop: "2px" }}>Stays on this phone. No account needed.</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "10px", flexWrap: "wrap" }}>
+                  <label className="solid-press" style={{ ...pillButton, cursor: photoBusy ? "wait" : "pointer" }}>
+                    <input type="file" accept="image/*" onChange={changePhoto} disabled={photoBusy} style={{ display: "none" }} />
+                    {photoBusy ? "Saving…" : localPhoto ? "Change photo" : "Add a photo"}
+                  </label>
+                  {localPhoto && !photoBusy && (
+                    <button type="button" onClick={() => setLocalPhoto(null)} style={textButton}>Remove</button>
+                  )}
+                </div>
               </div>
             </>
           )}

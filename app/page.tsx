@@ -9,6 +9,7 @@ import { SparkMark } from "@/app/spark-mark";
 import { Avatar } from "@/app/avatar";
 import { Reveal } from "@/app/reveal";
 import { moods, quickStarts } from "@/app/moods";
+import { subscribePreferences, getLocalPhoto } from "@/app/preferences";
 
 // Today's date for the header, e.g. "SATURDAY, OCTOBER 17", worked out on the phone in its own
 // time zone. The server leaves it blank so the page never shows the server's date.
@@ -46,6 +47,7 @@ export default function HomePage() {
   const [streak, setStreak] = useState<{ count: number; doneToday: boolean } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const today = useToday();
+  const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const router = useRouter();
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function HomePage() {
                 </svg>
               </Link>
               <Link href="/profile" aria-label="Your profile" style={{ display: "flex", flexShrink: 0 }}>
-                <Avatar url={avatarUrl} size={44} />
+                <Avatar url={avatarUrl ?? localPhoto} size={44} />
               </Link>
             </div>
           </div>
