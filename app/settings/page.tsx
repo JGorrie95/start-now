@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import type { CSSProperties, ChangeEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
@@ -459,6 +460,9 @@ export default function SettingsPage() {
             </div>
           </>
         )}
+        <p style={{ textAlign: "center", margin: "30px 0 0" }}>
+          <Link href="/privacy" style={{ color: colors.inkSoft, fontSize: "14px", fontWeight: 600, textUnderlineOffset: "3px" }}>Privacy policy</Link>
+        </p>
       </div>
     </main>
   );

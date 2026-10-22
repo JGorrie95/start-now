@@ -176,6 +176,9 @@ export default function ProfilePage() {
             <p style={{ margin: "10px 0 0", fontSize: "15px", lineHeight: 1.55, color: colors.inkSoft }}>
               If you choose to make a friends account, it&apos;s stored online so your friends can see it: your nickname, your streak, who&apos;s in your circle, and your photo only if you choose. That&apos;s all we collect, and we will never sell or share your data with anyone.
             </p>
+            <p style={{ margin: "12px 0 0" }}>
+              <Link href="/privacy" style={{ color: colors.pineDeep, fontSize: "15px", fontWeight: 700, textUnderlineOffset: "3px" }}>Read the full privacy policy</Link>
+            </p>
           </div>
         </div>
 
