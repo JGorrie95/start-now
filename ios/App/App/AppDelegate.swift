@@ -400,8 +400,22 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 // The app's main screen. Same as Capacitor's, plus our LiveTimer plugin.
 // SceneDelegate.swift starts the app with this screen.
 class MainViewController: CAPBridgeViewController {
+    // Widget taps. If the website is already showing, jump straight to the page (fast);
+    // otherwise (app was closed) load it from scratch.
     func open(_ url: URL) {
-        webView?.load(URLRequest(url: url))
+        guard let webView = webView else { return }
+        var path = url.path.isEmpty ? "/" : url.path
+        if let query = url.query { path += "?" + query }
+        guard let data = try? JSONSerialization.data(withJSONObject: path, options: .fragmentsAllowed),
+              let quoted = String(data: data, encoding: .utf8) else {
+            webView.load(URLRequest(url: url))
+            return
+        }
+        webView.evaluateJavaScript("window.startNowOpen ? window.startNowOpen(\(quoted)) : false") { result, _ in
+            if (result as? Bool) != true {
+                webView.load(URLRequest(url: url))
+            }
+        }
     }
 
     override open func capacitorDidLoad() {
