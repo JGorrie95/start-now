@@ -470,7 +470,10 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWidgetData", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setAppIcon", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getAppIcon", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getAppIcon", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setReminders", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "testReminder", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openNotificationSettings", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func setAppearance(_ call: CAPPluginCall) {
@@ -507,6 +510,44 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    // Settings > Reminders. The website sends the choices (morning, evening, and nudges through
+    // the day) and this schedules them as ordinary repeating notifications on this phone.
+    // Times are minutes after midnight. Nothing is sent anywhere.
+    @objc func setReminders(_ call: CAPPluginCall) {
+        let plan = Reminders.Plan(
+            morningOn: call.getBool("morningOn") ?? false,
+            morningMinutes: call.getInt("morningMinutes") ?? 8 * 60,
+            eveningOn: call.getBool("eveningOn") ?? false,
+            eveningMinutes: call.getInt("eveningMinutes") ?? 20 * 60,
+            nudges: call.getInt("nudges") ?? 0,
+            nudgeFrom: call.getInt("nudgeFrom") ?? 9 * 60,
+            nudgeTo: call.getInt("nudgeTo") ?? 19 * 60
+        )
+        Task {
+            let allowed = await Reminders.apply(plan)
+            call.resolve(["ok": allowed, "denied": !allowed])
+        }
+    }
+
+    // A reminder a few seconds from now, so you can check they arrive. (While the app is open
+    // iPhone keeps notifications quiet, so go to the Home Screen or lock the phone.)
+    @objc func testReminder(_ call: CAPPluginCall) {
+        Task {
+            let allowed = await Reminders.sendTest()
+            call.resolve(["ok": allowed, "denied": !allowed])
+        }
+    }
+
+    // Opens this app's page in the iPhone Settings app (to switch notifications back on).
+    @objc func openNotificationSettings(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+            call.resolve()
+        }
+    }
+
     // The home screen widget shows the streak. The website sends it here whenever it changes.
     // It reaches the widget through the shared "App Groups" space (StartNowHomeWidget.swift).
     @objc func setWidgetData(_ call: CAPPluginCall) {
@@ -516,6 +557,91 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
         shared?.set(true, forKey: "streakKnown")
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
+    }
+}
+
+// MARK: - Start Now: reminders (Settings > Reminders)
+
+// Friendly, never-shaming reminders. They are repeating daily notifications made on the phone:
+// no server, no account. Every reminder this app makes has an id starting with "startnow.reminder."
+// so they can all be cleared and rebuilt together whenever the choices change.
+enum Reminders {
+    struct Plan {
+        var morningOn: Bool
+        var morningMinutes: Int
+        var eveningOn: Bool
+        var eveningMinutes: Int
+        var nudges: Int
+        var nudgeFrom: Int
+        var nudgeTo: Int
+    }
+
+    static let prefix = "startnow.reminder."
+
+    static let morning = ("Good morning", "What's one small thing you could start today?")
+    static let evening = ("Evening check-in", "Did you start something today? Even 2 minutes counts.")
+    static let nudgeLines: [(String, String)] = [
+        ("One small step?", "Pick one tiny thing and start it. Just 2 minutes."),
+        ("Got a minute?", "Tell Start Now what's on your mind and get one doable step."),
+        ("Stuck on something?", "You don't have to do it all. Begin with the smallest bit."),
+        ("Quick reset", "What's one thing you could start right now?"),
+        ("Gentle nudge", "No pressure. One tiny start still counts."),
+        ("Start now?", "A 5 minute start is a real start."),
+        ("Tiny win time", "Pick the easiest thing and do it for 2 minutes."),
+        ("You've got this", "One small step. That's all.")
+    ]
+
+    // Spreads the nudges evenly from "From" to "To" (one nudge goes in the middle).
+    static func nudgeTimes(count: Int, from: Int, to: Int) -> [Int] {
+        let n = min(max(count, 0), 8)
+        guard n > 0, to > from else { return [] }
+        func nearest5(_ minutes: Int) -> Int { ((minutes + 2) / 5) * 5 }
+        if n == 1 { return [nearest5((from + to) / 2)] }
+        return (0..<n).map { nearest5(from + (to - from) * $0 / (n - 1)) }
+    }
+
+    static func add(id: String, minutes: Int, line: (String, String)) async {
+        var when = DateComponents()
+        when.hour = (minutes / 60) % 24
+        when.minute = minutes % 60
+        let content = UNMutableNotificationContent()
+        content.title = line.0
+        content.body = line.1
+        content.sound = .default
+        let trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: prefix + id, content: content, trigger: trigger))
+    }
+
+    static func clear() async {
+        let center = UNUserNotificationCenter.current()
+        let ids = await center.pendingNotificationRequests().map { $0.identifier }.filter { $0.hasPrefix(prefix) }
+        center.removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    // Rebuilds every reminder. Returns false only if the phone's notifications are switched off
+    // for this app (so the website can tell you how to turn them back on).
+    static func apply(_ plan: Plan) async -> Bool {
+        await clear()
+        let times = nudgeTimes(count: plan.nudges, from: plan.nudgeFrom, to: plan.nudgeTo)
+        guard plan.morningOn || plan.eveningOn || !times.isEmpty else { return true }
+        guard await LiveTimerPlugin.allowNotifications() else { return false }
+        if plan.morningOn { await add(id: "morning", minutes: plan.morningMinutes, line: morning) }
+        if plan.eveningOn { await add(id: "evening", minutes: plan.eveningMinutes, line: evening) }
+        for (index, minutes) in times.enumerated() {
+            await add(id: "nudge.\(index)", minutes: minutes, line: nudgeLines[index % nudgeLines.count])
+        }
+        return true
+    }
+
+    static func sendTest() async -> Bool {
+        guard await LiveTimerPlugin.allowNotifications() else { return false }
+        let content = UNMutableNotificationContent()
+        content.title = nudgeLines[0].0
+        content.body = nudgeLines[0].1
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 6, repeats: false)
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: prefix + "test", content: content, trigger: trigger))
+        return true
     }
 }
 
