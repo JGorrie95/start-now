@@ -148,6 +148,19 @@ export function completeLocalStep(): { alreadyDone: boolean; streak: number; lon
   return { alreadyDone: false, streak: count, longest };
 }
 
+// ---------- Alarm message ----------
+// Your own words for the alarm. Empty: the alarm shows the step you were doing.
+
+const MESSAGE_KEY = "startnow-alarm-message";
+
+export function getAlarmMessage(): string {
+  return read(MESSAGE_KEY) ?? "";
+}
+
+export function setAlarmMessage(message: string) {
+  write(MESSAGE_KEY, message.slice(0, 80));
+}
+
 // ---------- Alarm sound ----------
 
 // The iPhone's own alarm is only possible in the iPhone app, so the website starts on Chimes.

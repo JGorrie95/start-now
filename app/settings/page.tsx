@@ -9,7 +9,7 @@ import { BackButton } from "@/app/back-button";
 import { moods } from "@/app/moods";
 import { Avatar, uploadAvatar, removeAvatar, makeLocalPhoto } from "@/app/avatar";
 import { alarmSounds, previewSound, stopPreviewSound, type AlarmSound } from "@/app/sounds";
-import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, type ThemeChoice, type SoundId } from "@/app/preferences";
+import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, getAlarmMessage, setAlarmMessage, type ThemeChoice, type SoundId } from "@/app/preferences";
 import { testPhoneAlarm, setAppIcon, getAppIcon } from "@/app/native";
 import { leaveFriends } from "@/app/actions";
 
@@ -161,6 +161,7 @@ export default function SettingsPage() {
   const theme = useSyncExternalStore(subscribePreferences, getTheme, () => "system" as ThemeChoice);
   const sound = useSyncExternalStore(subscribePreferences, getSound, () => "chimes" as SoundId);
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
+  const alarmMessage = useSyncExternalStore(subscribePreferences, getAlarmMessage, () => "");
   const [playing, setPlaying] = useState<SoundId | null>(null);
   const [account, setAccount] = useState<Account>({ status: "loading" });
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -235,7 +236,7 @@ export default function SettingsPage() {
     stopPreviewSound();
     setPlaying(null);
     setTestMessage("Setting it…");
-    const result = await testPhoneAlarm(sound, 5);
+    const result = await testPhoneAlarm(sound, 5, alarmMessage);
     setTestMessage(
       result === "alarm"
         ? "It rings in 5 seconds. Lock your phone to see it the way it'll look."
@@ -468,6 +469,20 @@ export default function SettingsPage() {
           Tap a sound to hear it. It plays when your timer is up.
           <span className="app-only-inline"> The iPhone alarm rings until you tap Stop. The others ring for about 30 seconds.</span>
         </p>
+
+        <div className="app-only" style={{ marginTop: "18px" }}>
+          <label htmlFor="alarm-message" style={{ display: "block", fontSize: "13px", fontWeight: 700, letterSpacing: "0.08em", color: colors.inkSoft, margin: "0 6px 8px" }}>ALARM MESSAGE</label>
+          <input
+            id="alarm-message"
+            value={alarmMessage}
+            onChange={(e) => setAlarmMessage(e.target.value)}
+            maxLength={80}
+            placeholder="Leave empty to show your step"
+            className="text-field"
+            style={{ width: "100%", boxSizing: "border-box", height: "52px", padding: "0 16px", borderRadius: "16px", border: `1.5px solid ${colors.fieldBorder}`, background: colors.field, color: colors.ink, fontSize: "16px", fontFamily: fonts.body, outline: "none" }}
+          />
+          <p style={footnote}>This is what the alarm says when time is up, like &ldquo;Great job, take a break!&rdquo; Leave it empty and it shows the step you were doing.</p>
+        </div>
 
         <div className="app-only" style={{ marginTop: "14px" }}>
           <button type="button" onClick={() => void testAlarm()} className="solid-press" style={{ ...pillButton, width: "100%", height: "52px", borderRadius: "18px", fontSize: "16px", boxShadow: `0 10px 24px ${tint(colors.pineDeep, 0.25)}` }}>

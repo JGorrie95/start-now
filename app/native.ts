@@ -9,13 +9,13 @@ type Haptics = {
 };
 
 type LiveTimer = {
-  start: (options: { step: string; totalSeconds: number; endsAt: number; soundOn: boolean; sound: string }) => Promise<{ started?: boolean; alarm?: boolean }>;
+  start: (options: { step: string; totalSeconds: number; endsAt: number; soundOn: boolean; sound: string; message: string }) => Promise<{ started?: boolean; alarm?: boolean }>;
   setSound: (options: { soundOn: boolean }) => Promise<unknown>;
   addListener: (event: "soundChanged", callback: (data: { soundOn: boolean }) => void) => Promise<{ remove: () => void }> | { remove: () => void };
   pause: (options: { secondsLeft: number }) => Promise<unknown>;
   resume: (options: { endsAt: number }) => Promise<unknown>;
   end: (options: { done: boolean }) => Promise<unknown>;
-  testAlarm?: (options: { sound: string; seconds: number }) => Promise<{ kind?: string }>;
+  testAlarm?: (options: { sound: string; seconds: number; message: string }) => Promise<{ kind?: string }>;
 };
 
 type AppSettings = {
@@ -75,7 +75,7 @@ export const lockScreenTimer = {
   // Resolves true when the iPhone itself will sound the alarm at the end
   // (then the page doesn't need to play its own sound).
   // sound: which alarm sound was picked in Settings (see sounds.ts).
-  async start(step: string, totalSeconds: number, endsAt: number, soundOn: boolean, sound: string): Promise<boolean> {
+  async start(step: string, totalSeconds: number, endsAt: number, soundOn: boolean, sound: string, message = ""): Promise<boolean> {
     if (!isNativeApp()) return false;
     // These [StartNow] lines show up in Xcode's console, to help check the iPhone app.
     const plugin = liveTimerPlugin();
@@ -84,7 +84,7 @@ export const lockScreenTimer = {
       return false;
     }
     try {
-      const reply = await plugin.start({ step, totalSeconds, endsAt, soundOn, sound });
+      const reply = await plugin.start({ step, totalSeconds, endsAt, soundOn, sound, message });
       console.log(`[StartNow] lock screen timer reply: ${JSON.stringify(reply)}`);
       return !!reply?.alarm;
     } catch (error) {
@@ -125,11 +125,11 @@ export const lockScreenTimer = {
 // Settings > "Test my alarm": the real iPhone alarm rings in a few seconds.
 // "alarm": the loud alarm is set. "notification": alarms are switched off, so a normal
 // notification will show instead. "update": this copy of the app is too old to test.
-export async function testPhoneAlarm(sound: string, seconds = 5): Promise<"alarm" | "notification" | "off" | "update"> {
+export async function testPhoneAlarm(sound: string, seconds = 5, message = ""): Promise<"alarm" | "notification" | "off" | "update"> {
   const plugin = liveTimerPlugin();
   if (!plugin?.testAlarm) return "update";
   try {
-    const reply = await plugin.testAlarm({ sound, seconds });
+    const reply = await plugin.testAlarm({ sound, seconds, message });
     if (reply?.kind === "alarm" || reply?.kind === "notification") return reply.kind;
     return "off";
   } catch {

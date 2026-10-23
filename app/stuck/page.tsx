@@ -8,7 +8,7 @@ import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer, syncWidget } from "@/app/native";
 import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
-import { getSound, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
+import { getSound, getAlarmMessage, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
 import { unlockAudio, loadSound, ringAlarm, stopAlarm } from "@/app/sounds";
 
 type StepVariant = { step: string; reason: string };
@@ -237,7 +237,7 @@ function JustStartTimer({ step, mood, onDone }: { step: string; mood: Mood; onDo
     setSecondsLeft(totalSeconds);
     setStatus("running");
     phoneAlarmRef.current = false;
-    void lockScreenTimer.start(step, totalSeconds, endAtRef.current, soundOn, soundRef.current).then((phoneAlarm) => {
+    void lockScreenTimer.start(step, totalSeconds, endAtRef.current, soundOn, soundRef.current, getAlarmMessage()).then((phoneAlarm) => {
       phoneAlarmRef.current = phoneAlarm;
     });
   };
