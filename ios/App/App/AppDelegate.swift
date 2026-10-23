@@ -421,6 +421,21 @@ class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(LiveTimerPlugin())
         bridge?.registerPluginInstance(AppSettingsPlugin())
+        // iOS 26+ draws a soft haze under the clock and battery when a page scrolls under them.
+        // Over the app's own colours it shows as a grey glow, so turn it off.
+        if #available(iOS 26.0, *) {
+            webView?.scrollView.topEdgeEffect.isHidden = true
+            webView?.scrollView.bottomEdgeEffect.isHidden = true
+        }
+        // Behind the page: sand in light mode, near-black in dark mode (matches the website).
+        let behind = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(red: 0x17 / 255, green: 0x16 / 255, blue: 0x14 / 255, alpha: 1)
+                : UIColor(red: 0xEA / 255, green: 0xE3 / 255, blue: 0xD2 / 255, alpha: 1)
+        }
+        view.backgroundColor = behind
+        webView?.backgroundColor = behind
+        webView?.scrollView.backgroundColor = behind
         // Opened from the widget while the app was closed: go to that page once it's ready.
         if let link = DeepLink.pending {
             DeepLink.pending = nil
@@ -438,7 +453,9 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "AppSettings"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setAppearance", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setWidgetData", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setWidgetData", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setAppIcon", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getAppIcon", returnType: CAPPluginReturnPromise)
     ]
 
     @objc func setAppearance(_ call: CAPPluginCall) {
@@ -451,6 +468,27 @@ public class AppSettingsPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
             call.resolve()
+        }
+    }
+
+    // Settings > App icon. "ThreadsBlue" is the main icon; the others live in Assets.xcassets
+    // as extra app icons (Xcode includes them because of ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS).
+    @objc func setAppIcon(_ call: CAPPluginCall) {
+        let name = call.getString("name") ?? "ThreadsBlue"
+        let allowed = ["ThreadsBlue", "ThreadsAmber", "ThreadsCoral", "ThreadsGreen", "TimerAmber", "TimerCoral", "TimerGreen"]
+        guard allowed.contains(name) else { call.resolve(["ok": false]); return }
+        DispatchQueue.main.async {
+            guard UIApplication.shared.supportsAlternateIcons else { call.resolve(["ok": false]); return }
+            UIApplication.shared.setAlternateIconName(name == "ThreadsBlue" ? nil : name) { error in
+                if let error = error { print("[StartNow] App icon: \(error)") }
+                call.resolve(["ok": error == nil])
+            }
+        }
+    }
+
+    @objc func getAppIcon(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            call.resolve(["name": UIApplication.shared.alternateIconName ?? "ThreadsBlue"])
         }
     }
 
