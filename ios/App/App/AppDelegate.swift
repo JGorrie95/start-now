@@ -120,13 +120,13 @@ enum LoudAlarm {
         }
     }
 
-    static func schedule(at date: Date, sound: String) async -> Bool {
+    static func schedule(at date: Date, sound: String, title: String) async -> Bool {
         cancel()
         guard await allowed() else {
             print("[StartNow] Alarm: alarms aren't allowed, using a notification instead")
             return false
         }
-        let presentation = AlarmPresentation(alert: AlarmPresentation.Alert(title: "Time's up. You started."))
+        let presentation = AlarmPresentation(alert: AlarmPresentation.Alert(title: LocalizedStringResource(stringLiteral: title)))
         let attributes = AlarmAttributes<StartNowAlarmInfo>(
             presentation: presentation,
             metadata: StartNowAlarmInfo(),
@@ -195,6 +195,7 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let totalSeconds = call.getInt("totalSeconds") ?? 300
         let soundOn = call.getBool("soundOn") ?? true
         LiveTimerPlugin.chosenSound = call.getString("sound") ?? "iphone"
+        LiveTimerPlugin.alarmMessage = call.getString("message") ?? ""
         let endsAtMs = call.getDouble("endsAt") ?? (Date().timeIntervalSince1970 + Double(totalSeconds)) * 1000
         let endsAt = Date(timeIntervalSince1970: endsAtMs / 1000)
         let state = StartNowTimerAttributes.ContentState(endsAt: endsAt, pausedSecondsLeft: nil, done: false, soundOn: soundOn)
@@ -266,6 +267,7 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func testAlarm(_ call: CAPPluginCall) {
         let seconds = max(3, call.getInt("seconds") ?? 5)
         LiveTimerPlugin.chosenSound = call.getString("sound") ?? "iphone"
+        LiveTimerPlugin.alarmMessage = call.getString("message") ?? ""
         Task {
             let kind = await LiveTimerPlugin.setAlarmKind(endsAt: Date().addingTimeInterval(Double(seconds)), soundOn: true, step: "This is your test alarm.")
             call.resolve(["kind": kind])
@@ -319,6 +321,19 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
 
     // The sound picked in Settings: "iphone", "chimes", "bell", "bounce" or "beeps".
     // Remembered so pausing, resuming and the mute button keep using it.
+    // Settings > Alarm message: your own words for the alarm. Empty: the alarm shows your step.
+    static var alarmMessage: String {
+        get { UserDefaults.standard.string(forKey: "startnow.alarmMessage") ?? "" }
+        set { UserDefaults.standard.set(String(newValue.prefix(80)), forKey: "startnow.alarmMessage") }
+    }
+
+    static func alarmTitle(step: String) -> String {
+        let own = alarmMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !own.isEmpty { return own }
+        let task = step.trimmingCharacters(in: .whitespacesAndNewlines)
+        return task.isEmpty ? "Time's up. You started." : task
+    }
+
     static var chosenSound: String {
         get { UserDefaults.standard.string(forKey: "startnow.alarmSound") ?? "iphone" }
         set { UserDefaults.standard.set(newValue, forKey: "startnow.alarmSound") }
@@ -332,7 +347,7 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         #if canImport(AlarmKit)
         if soundOn {
             if #available(iOS 26.1, *) {
-                if await LoudAlarm.schedule(at: endsAt, sound: sound) { return "alarm" }
+                if await LoudAlarm.schedule(at: endsAt, sound: sound, title: alarmTitle(step: step)) { return "alarm" }
             }
         }
         #endif
@@ -362,8 +377,8 @@ public class LiveTimerPlugin: CAPPlugin, CAPBridgedPlugin {
         let seconds = endsAt.timeIntervalSinceNow
         guard seconds > 1 else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Time's up. You started."
-        content.body = step
+        content.title = alarmTitle(step: step)
+        content.body = alarmMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Time's up. You started." : step
         if !soundOn {
             content.sound = nil
         } else if sound == "iphone" {
