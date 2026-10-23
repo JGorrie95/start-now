@@ -23,6 +23,12 @@ type AppSettings = {
   setWidgetData?: (options: { count: number; lastDate: string | null }) => Promise<unknown>;
   setAppIcon?: (options: { name: string }) => Promise<{ ok?: boolean }>;
   getAppIcon?: () => Promise<{ name?: string }>;
+  setReminders?: (options: {
+    morningOn: boolean; morningMinutes: number; eveningOn: boolean; eveningMinutes: number;
+    nudges: number; nudgeFrom: number; nudgeTo: number;
+  }) => Promise<{ ok?: boolean; denied?: boolean }>;
+  testReminder?: () => Promise<{ ok?: boolean; denied?: boolean }>;
+  openNotificationSettings?: () => Promise<unknown>;
 };
 
 type CapacitorBridge = {
@@ -158,6 +164,57 @@ export function syncWidget(count: number, lastDate: string | null) {
 }
 
 // Settings > App icon (iPhone app only). Resolves false if this copy of the app can't switch icons.
+// ---------- Reminders (Settings > Reminders) ----------
+
+const minutesOf = (time: string) => {
+  const [h, m] = time.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+// Sends the reminder choices to the iPhone, which schedules them on the phone.
+// "ok": scheduled. "denied": notifications are switched off for the app in iPhone Settings.
+// "update": this version of the app is too old to do reminders.
+export async function applyReminders(r: {
+  morningOn: boolean; morningTime: string; eveningOn: boolean; eveningTime: string;
+  nudges: number; nudgeFrom: string; nudgeTo: string;
+}): Promise<"ok" | "denied" | "update"> {
+  try {
+    const plugin = bridge()?.Plugins?.AppSettings;
+    if (!plugin?.setReminders) return "update";
+    const reply = await plugin.setReminders({
+      morningOn: r.morningOn,
+      morningMinutes: minutesOf(r.morningTime),
+      eveningOn: r.eveningOn,
+      eveningMinutes: minutesOf(r.eveningTime),
+      nudges: r.nudges,
+      nudgeFrom: minutesOf(r.nudgeFrom),
+      nudgeTo: minutesOf(r.nudgeTo),
+    });
+    return reply?.denied ? "denied" : "ok";
+  } catch {
+    return "update";
+  }
+}
+
+export async function sendTestReminder(): Promise<"ok" | "denied" | "update"> {
+  try {
+    const plugin = bridge()?.Plugins?.AppSettings;
+    if (!plugin?.testReminder) return "update";
+    const reply = await plugin.testReminder();
+    return reply?.denied ? "denied" : "ok";
+  } catch {
+    return "update";
+  }
+}
+
+export function openNotificationSettings() {
+  try {
+    void bridge()?.Plugins?.AppSettings?.openNotificationSettings?.()?.catch(() => {});
+  } catch {
+    // Nothing to do.
+  }
+}
+
 export async function setAppIcon(name: string): Promise<boolean> {
   try {
     const reply = await bridge()?.Plugins?.AppSettings?.setAppIcon?.({ name });

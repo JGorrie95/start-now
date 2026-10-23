@@ -218,6 +218,66 @@ export function deleteCustomQuickStart(id: string) {
   write(QUICK_STARTS_KEY, JSON.stringify(getCustomQuickStarts().filter((q) => q.id !== id)));
 }
 
+// ---------- Reminders ----------
+// When Start Now should nudge you to begin something. Only used in the iPhone app, where the
+// reminders are scheduled on the phone itself (nothing is sent anywhere).
+// Times are "HH:MM" (24 hour), the way the time picker gives them.
+
+export type Reminders = {
+  morningOn: boolean;
+  morningTime: string;
+  eveningOn: boolean;
+  eveningTime: string;
+  nudges: number; // how many nudges a day, 0 to MAX_NUDGES
+  nudgeFrom: string;
+  nudgeTo: string;
+};
+
+export const MAX_NUDGES = 6;
+const REMINDERS_KEY = "startnow-reminders";
+export const DEFAULT_REMINDERS: Reminders = {
+  morningOn: false,
+  morningTime: "08:00",
+  eveningOn: false,
+  eveningTime: "20:00",
+  nudges: 0,
+  nudgeFrom: "09:00",
+  nudgeTo: "19:00",
+};
+let remindersCache: { raw: string | null; value: Reminders } = { raw: null, value: DEFAULT_REMINDERS };
+
+const isTime = (value: unknown): value is string => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+export function getReminders(): Reminders {
+  const raw = read(REMINDERS_KEY);
+  if (raw === remindersCache.raw) return remindersCache.value; // the same object, so pages don't redraw for nothing
+  let value = DEFAULT_REMINDERS;
+  try {
+    const parsed = raw ? (JSON.parse(raw) as Partial<Reminders>) : {};
+    value = {
+      morningOn: parsed.morningOn === true,
+      morningTime: isTime(parsed.morningTime) ? parsed.morningTime : DEFAULT_REMINDERS.morningTime,
+      eveningOn: parsed.eveningOn === true,
+      eveningTime: isTime(parsed.eveningTime) ? parsed.eveningTime : DEFAULT_REMINDERS.eveningTime,
+      nudges: Number.isInteger(parsed.nudges) ? Math.min(MAX_NUDGES, Math.max(0, parsed.nudges as number)) : 0,
+      nudgeFrom: isTime(parsed.nudgeFrom) ? parsed.nudgeFrom : DEFAULT_REMINDERS.nudgeFrom,
+      nudgeTo: isTime(parsed.nudgeTo) ? parsed.nudgeTo : DEFAULT_REMINDERS.nudgeTo,
+    };
+  } catch {
+    value = DEFAULT_REMINDERS;
+  }
+  remindersCache = { raw, value };
+  return value;
+}
+
+export function getServerReminders(): Reminders {
+  return DEFAULT_REMINDERS;
+}
+
+export function saveReminders(patch: Partial<Reminders>) {
+  write(REMINDERS_KEY, JSON.stringify({ ...getReminders(), ...patch }));
+}
+
 // ---------- Celebration sound ----------
 // A little trumpet when you finish a step. On unless it's switched off in Settings.
 

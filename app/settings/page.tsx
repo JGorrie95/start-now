@@ -12,6 +12,7 @@ import { alarmSounds, previewSound, stopPreviewSound, playFanfare, type AlarmSou
 import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, getAlarmMessage, setAlarmMessage, getCelebrationSound, setCelebrationSound, type ThemeChoice, type SoundId } from "@/app/preferences";
 import { testPhoneAlarm, setAppIcon, getAppIcon } from "@/app/native";
 import { leaveFriends } from "@/app/actions";
+import { RemindersSettings } from "@/app/reminders-settings";
 
 type Account =
   | { status: "loading" }
@@ -494,6 +495,9 @@ export default function SettingsPage() {
             <p role="status" style={{ ...footnote, padding: "12px 14px", borderRadius: "14px", background: tint(colors.pine, 0.12), color: colors.ink }}>{testMessage}</p>
           )}
         </div>
+
+        {/* Reminders (iPhone app) */}
+        <RemindersSettings />
 
         {/* Celebration sound */}
         <h2 style={sectionLabel}>WHEN YOU FINISH</h2>

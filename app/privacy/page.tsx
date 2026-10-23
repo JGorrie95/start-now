@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 // Change these two lines when they change, and the page updates everywhere.
-const UPDATED = "October 21, 2026";
+const UPDATED = "October 23, 2026";
 const CONTACT_EMAIL = "privacy@startnowadhd.app";
 
 const h2: CSSProperties = { margin: "0 0 10px", fontSize: "19px", fontWeight: 800, letterSpacing: "-0.01em", fontFamily: fonts.body };
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
         <Section title="On iPhone">
           <p style={p}>The app may ask to use these. Each one stays on your phone and you can turn it off in your iPhone&apos;s Settings app:</p>
           <ul style={{ margin: 0, paddingLeft: "20px" }}>
-            <li style={li}>Alarms and notifications: to let you know when your timer is up.</li>
+            <li style={li}>Alarms and notifications: to let you know when your timer is up, and to send the reminders you choose in Settings. Reminders are set up on your phone, so nothing about them is sent to us.</li>
             <li style={li}>Camera and photos: only when you choose a profile photo. We only get the one photo you pick.</li>
             <li style={li}>Live Activities: to show your timer on the lock screen. That information stays on your phone.</li>
           </ul>
