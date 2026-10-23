@@ -156,6 +156,34 @@ export function stopAlarm() {
   stopRinging = null;
 }
 
+// ---------- The trumpet when you finish a step ----------
+
+const FANFARE = "/sounds/fanfare.mp3";
+let fanfare: Promise<AudioBuffer | null> | null = null;
+
+// Call from the tap on "I did it", so the sound is allowed and ready in time.
+export function prepareFanfare() {
+  const ctx = unlockAudio();
+  if (!ctx || fanfare) return;
+  fanfare = fetch(FANFARE)
+    .then((response) => {
+      if (!response.ok) throw new Error(`sound ${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then((data) => ctx.decodeAudioData(data))
+    .catch(() => {
+      fanfare = null;
+      return null;
+    });
+}
+
+export function playFanfare() {
+  prepareFanfare();
+  void fanfare?.then((buffer) => {
+    if (buffer) play(buffer);
+  });
+}
+
 // Three soft notes, made on the spot, for when a sound file couldn't load (no internet).
 function playBackupChime() {
   const ctx = context;

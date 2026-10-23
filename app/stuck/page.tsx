@@ -8,8 +8,8 @@ import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer, syncWidget } from "@/app/native";
 import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
-import { getSound, getAlarmMessage, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
-import { unlockAudio, loadSound, ringAlarm, stopAlarm } from "@/app/sounds";
+import { getSound, getAlarmMessage, getCelebrationSound, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
+import { unlockAudio, loadSound, ringAlarm, stopAlarm, prepareFanfare, playFanfare } from "@/app/sounds";
 
 type StepVariant = { step: string; reason: string };
 type Category = { test: (lower: string) => boolean; options: [StepVariant, StepVariant]; smaller: StepVariant };
@@ -502,10 +502,12 @@ function StuckContent() {
     } else {
       setDoneState({ status: "success", streak: local.streak });
       successHaptic();
+      if (getCelebrationSound()) playFanfare();
     }
   };
 
   const handleMarkDone = async () => {
+    if (getCelebrationSound()) prepareFanfare(); // this tap is what lets the trumpet play
     setDoneState({ status: "loading" });
     let signedIn = false;
     try {
@@ -528,6 +530,7 @@ function StuckContent() {
         setDoneState({ status: "success", streak: res.streak });
         syncWidget(res.streak, localDate());
         successHaptic();
+        if (getCelebrationSound()) playFanfare();
       } else {
         setDoneState({ status: "error" });
       }

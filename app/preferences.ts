@@ -161,6 +161,19 @@ export function setAlarmMessage(message: string) {
   write(MESSAGE_KEY, message.slice(0, 80));
 }
 
+// ---------- Celebration sound ----------
+// A little trumpet when you finish a step. On unless it's switched off in Settings.
+
+const CELEBRATION_KEY = "startnow-celebration-sound";
+
+export function getCelebrationSound(): boolean {
+  return read(CELEBRATION_KEY) !== "off";
+}
+
+export function setCelebrationSound(on: boolean) {
+  write(CELEBRATION_KEY, on ? "on" : "off");
+}
+
 // ---------- Alarm sound ----------
 
 // The iPhone's own alarm is only possible in the iPhone app, so the website starts on Chimes.

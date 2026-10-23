@@ -8,8 +8,8 @@ import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { moods } from "@/app/moods";
 import { Avatar, uploadAvatar, removeAvatar, makeLocalPhoto } from "@/app/avatar";
-import { alarmSounds, previewSound, stopPreviewSound, type AlarmSound } from "@/app/sounds";
-import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, getAlarmMessage, setAlarmMessage, type ThemeChoice, type SoundId } from "@/app/preferences";
+import { alarmSounds, previewSound, stopPreviewSound, playFanfare, type AlarmSound } from "@/app/sounds";
+import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, getAlarmMessage, setAlarmMessage, getCelebrationSound, setCelebrationSound, type ThemeChoice, type SoundId } from "@/app/preferences";
 import { testPhoneAlarm, setAppIcon, getAppIcon } from "@/app/native";
 import { leaveFriends } from "@/app/actions";
 
@@ -162,6 +162,7 @@ export default function SettingsPage() {
   const sound = useSyncExternalStore(subscribePreferences, getSound, () => "chimes" as SoundId);
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const alarmMessage = useSyncExternalStore(subscribePreferences, getAlarmMessage, () => "");
+  const celebrationSound = useSyncExternalStore(subscribePreferences, getCelebrationSound, () => true);
   const [playing, setPlaying] = useState<SoundId | null>(null);
   const [account, setAccount] = useState<Account>({ status: "loading" });
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -493,6 +494,32 @@ export default function SettingsPage() {
             <p role="status" style={{ ...footnote, padding: "12px 14px", borderRadius: "14px", background: tint(colors.pine, 0.12), color: colors.ink }}>{testMessage}</p>
           )}
         </div>
+
+        {/* Celebration sound */}
+        <h2 style={sectionLabel}>WHEN YOU FINISH</h2>
+        <div style={group}>
+          <label className="settings-row" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 16px", cursor: "pointer" }}>
+            <span aria-hidden="true" style={{ width: "42px", height: "42px", borderRadius: "12px", background: moods.ember.background, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10v4h3l6 4V6L6 10H3z" /><path d="M12 9h5l4-3v12l-4-3h-5" /></svg>
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: "16px", fontWeight: 700 }}>Trumpet celebration</span>
+              <span style={{ display: "block", fontSize: "14px", color: colors.inkSoft, marginTop: "2px" }}>Plays with the confetti</span>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={celebrationSound}
+              onChange={(e) => {
+                setCelebrationSound(e.target.checked);
+                if (e.target.checked) playFanfare();
+              }}
+              className="ios-switch"
+              aria-label="Trumpet celebration"
+            />
+          </label>
+        </div>
+        <p style={footnote}>A little ta-da when you mark a step as done. Switch it on to hear it.</p>
 
         {/* Account */}
         {account.status === "signedIn" && account.anonymous && (
