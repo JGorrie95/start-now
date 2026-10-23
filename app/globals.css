@@ -410,3 +410,17 @@ html[data-app="native"] main.bleed.bleed:has(.mood-panel) { padding-top: 0 !impo
   outline: 2px solid var(--c-pine-deep, #2f6f5e);
   outline-offset: 2px;
 }
+
+/* The "make your own quick start" sheet slides up from the bottom. */
+.sheet-backdrop { animation: sheet-fade 0.2s ease-out; }
+.sheet { animation: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes sheet-fade { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0.6; } }
+
+/* Your own quick starts wiggle a little while you're editing them, like iPhone apps. */
+.wiggle { animation: wiggle 0.5s ease-in-out infinite alternate; }
+.wiggle:nth-child(even) { animation-delay: -0.25s; }
+@keyframes wiggle { from { transform: rotate(-0.8deg); } to { transform: rotate(0.8deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .wiggle, .sheet, .sheet-backdrop { animation: none; }
+}

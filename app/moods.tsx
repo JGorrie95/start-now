@@ -48,6 +48,15 @@ export function CloudIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+// For the quick starts you make yourself.
+export function StarIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M9 2.5l1.9 4.1 4.4.5-3.3 3 .9 4.4L9 12.3l-3.9 2.2.9-4.4-3.3-3 4.4-.5L9 2.5z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 // text: what gets sent to the step screen. label: what the tile says.
 export const quickStarts = [
   { text: "I have too many things to do", label: "Too many things to do", mood: "dusk" as Mood, Icon: ListIcon },

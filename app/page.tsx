@@ -8,8 +8,9 @@ import { colors, fonts, radius, tint, cardSurface, pageBg } from "@/app/theme";
 import { SparkMark } from "@/app/spark-mark";
 import { Avatar } from "@/app/avatar";
 import { Reveal } from "@/app/reveal";
-import { moods, quickStarts } from "@/app/moods";
-import { subscribePreferences, getLocalPhoto, getLocalStreak, streakNow, NO_STREAK } from "@/app/preferences";
+import { moods, quickStarts, StarIcon } from "@/app/moods";
+import { QuickStartEditor } from "@/app/quick-start-editor";
+import { subscribePreferences, getLocalPhoto, getLocalStreak, streakNow, NO_STREAK, getCustomQuickStarts, getServerQuickStarts, MAX_QUICK_STARTS, type CustomQuickStart } from "@/app/preferences";
 import { syncWidget } from "@/app/native";
 
 // Today's date for the header, e.g. "SATURDAY, OCTOBER 17", worked out on the phone in its own
@@ -51,6 +52,9 @@ export default function HomePage() {
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const localStreak = useSyncExternalStore(subscribePreferences, getLocalStreak, () => NO_STREAK);
   const router = useRouter();
+  const myQuickStarts = useSyncExternalStore(subscribePreferences, getCustomQuickStarts, getServerQuickStarts);
+  const [editingQuickStarts, setEditingQuickStarts] = useState(false);
+  const [editor, setEditor] = useState<{ editing: CustomQuickStart | null } | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -76,6 +80,8 @@ export default function HomePage() {
   const shownStreak = account === "signedIn" ? streak : account === "signedOut" ? streakNow(localStreak) : null;
 
   const startWith = (text: string) => router.push(`/stuck?task=${encodeURIComponent(text)}`);
+  const startMine = (q: CustomQuickStart) => router.push(`/stuck?task=${encodeURIComponent(q.label)}&qs=${encodeURIComponent(q.id)}`);
+  const editing = editingQuickStarts && myQuickStarts.length > 0;
 
   const handleStart = () => {
     if (!task.trim()) return;
@@ -178,8 +184,15 @@ export default function HomePage() {
             {/* Quick starts: one tap and you're on your way */}
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", margin: "24px 4px 12px" }}>
               <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 800, letterSpacing: "-0.01em", fontFamily: fonts.body }}>Quick starts</h2>
-              <span style={{ fontSize: "14px", color: colors.inkSoft }}>Tap the one that fits</span>
+              {myQuickStarts.length > 0 ? (
+                <button type="button" onClick={() => setEditingQuickStarts((on) => !on)} aria-pressed={editing} style={{ border: "none", background: editing ? colors.pineDeep : tint(colors.ink, 0.06), color: editing ? colors.onAccent : colors.ink, height: "32px", padding: "0 14px", borderRadius: "16px", fontSize: "14px", fontWeight: 700, fontFamily: fonts.body, cursor: "pointer" }}>
+                  {editing ? "Done" : "Edit"}
+                </button>
+              ) : (
+                <span style={{ fontSize: "14px", color: colors.inkSoft }}>Tap the one that fits</span>
+              )}
             </div>
+            {editing && <p style={{ margin: "-4px 4px 12px", fontSize: "14px", color: colors.inkSoft }}>Tap one of yours to change or delete it.</p>}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
               {quickStarts.map(({ text, label, mood, Icon }) => (
                 <button
@@ -194,7 +207,48 @@ export default function HomePage() {
                   <span style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.25 }}>{label}</span>
                 </button>
               ))}
+              {myQuickStarts.map((q) => (
+                <button
+                  key={q.id}
+                  onClick={() => (editing ? setEditor({ editing: q }) : startMine(q))}
+                  aria-label={editing ? `Change ${q.label}` : q.label}
+                  className={editing ? "tile wiggle" : "tile"}
+                  style={{ position: "relative", height: "104px", borderRadius: "24px", border: "none", padding: "14px 16px", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start", background: moods[q.mood].background, color: "#FFFFFF", fontFamily: fonts.body, cursor: "pointer", minWidth: 0 }}
+                >
+                  <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <StarIcon />
+                  </span>
+                  {editing && (
+                    <span aria-hidden="true" style={{ position: "absolute", top: "12px", right: "12px", width: "30px", height: "30px", borderRadius: "50%", background: "#FFFFFF", color: moods[q.mood].deep, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(0, 0, 0, 0.18)" }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" /></svg>
+                    </span>
+                  )}
+                  <span style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.25, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflowWrap: "anywhere" }}>{q.label}</span>
+                </button>
+              ))}
+              {!editing && myQuickStarts.length < MAX_QUICK_STARTS && (
+                <button
+                  onClick={() => setEditor({ editing: null })}
+                  className="tile"
+                  style={{ height: "104px", borderRadius: "24px", border: `2px dashed ${tint(colors.ink, 0.22)}`, padding: "14px 16px", textAlign: "left", display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "flex-start", background: "transparent", color: colors.ink, fontFamily: fonts.body, cursor: "pointer", boxSizing: "border-box" }}
+                >
+                  <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: tint(colors.ink, 0.07), display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  </span>
+                  <span style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.25 }}>Make your own</span>
+                </button>
+              )}
             </div>
+            {editor && (
+              <QuickStartEditor
+                key={editor.editing?.id ?? "new"}
+                editing={editor.editing}
+                onClose={() => {
+                  setEditor(null);
+                  if (getCustomQuickStarts().length === 0) setEditingQuickStarts(false);
+                }}
+              />
+            )}
 
             {/* Streak: on this phone, or from your friends account */}
             {shownStreak && (

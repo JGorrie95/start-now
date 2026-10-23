@@ -161,6 +161,63 @@ export function setAlarmMessage(message: string) {
   write(MESSAGE_KEY, message.slice(0, 80));
 }
 
+// ---------- Your own quick starts ----------
+// Quick starts you make yourself. Saved on this phone only, never sent anywhere.
+
+export type CustomQuickStart = {
+  id: string;
+  label: string; // what the tile says, like "Walk the dog"
+  step: string; // your own first tiny step (can be empty: then we suggest one)
+  mood: "lagoon" | "dusk" | "tide" | "ember" | "rose"; // the tile's colour
+};
+
+const QUICK_STARTS_KEY = "startnow-quick-starts";
+export const MAX_QUICK_STARTS = 8;
+const NO_QUICK_STARTS: CustomQuickStart[] = [];
+const MOOD_IDS = ["lagoon", "dusk", "tide", "ember", "rose"];
+let quickStartsCache: { raw: string | null; list: CustomQuickStart[] } = { raw: null, list: NO_QUICK_STARTS };
+
+export function getCustomQuickStarts(): CustomQuickStart[] {
+  const raw = read(QUICK_STARTS_KEY);
+  if (raw === quickStartsCache.raw) return quickStartsCache.list; // the same list, so pages don't redraw for nothing
+  let list = NO_QUICK_STARTS;
+  try {
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      list = parsed
+        .filter((q): q is CustomQuickStart => !!q && typeof q.id === "string" && typeof q.label === "string" && q.label.trim() !== "")
+        .map((q) => ({ id: q.id, label: q.label.slice(0, 40), step: typeof q.step === "string" ? q.step.slice(0, 120) : "", mood: MOOD_IDS.includes(q.mood) ? q.mood : "lagoon" }))
+        .slice(0, MAX_QUICK_STARTS);
+    }
+  } catch {
+    list = NO_QUICK_STARTS;
+  }
+  quickStartsCache = { raw, list };
+  return list;
+}
+
+export function getServerQuickStarts(): CustomQuickStart[] {
+  return NO_QUICK_STARTS;
+}
+
+export function saveCustomQuickStart(quickStart: Omit<CustomQuickStart, "id"> & { id?: string }) {
+  const list = getCustomQuickStarts();
+  const clean: CustomQuickStart = {
+    id: quickStart.id ?? `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    label: quickStart.label.trim().slice(0, 40),
+    step: quickStart.step.trim().slice(0, 120),
+    mood: quickStart.mood,
+  };
+  const next = list.some((q) => q.id === clean.id)
+    ? list.map((q) => (q.id === clean.id ? clean : q))
+    : [...list, clean].slice(0, MAX_QUICK_STARTS);
+  write(QUICK_STARTS_KEY, JSON.stringify(next));
+}
+
+export function deleteCustomQuickStart(id: string) {
+  write(QUICK_STARTS_KEY, JSON.stringify(getCustomQuickStarts().filter((q) => q.id !== id)));
+}
+
 // ---------- Celebration sound ----------
 // A little trumpet when you finish a step. On unless it's switched off in Settings.
 

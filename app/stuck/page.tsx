@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { completeStep } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
@@ -7,8 +7,8 @@ import { colors, fonts, tint, cardSurface, pageBg } from "@/app/theme";
 import { BackButton } from "@/app/back-button";
 import { SparkMark } from "@/app/spark-mark";
 import { successHaptic, lockScreenTimer, syncWidget } from "@/app/native";
-import { moods, moodFor, quickStartFor, type Mood } from "@/app/moods";
-import { getSound, getAlarmMessage, getCelebrationSound, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
+import { moods, moodFor, quickStartFor, StarIcon, type Mood } from "@/app/moods";
+import { getSound, getAlarmMessage, getCelebrationSound, getCustomQuickStarts, getServerQuickStarts, subscribePreferences, completeLocalStep, localDate, type SoundId } from "@/app/preferences";
 import { unlockAudio, loadSound, ringAlarm, stopAlarm, prepareFanfare, playFanfare } from "@/app/sounds";
 
 type StepVariant = { step: string; reason: string };
@@ -101,6 +101,17 @@ const fallbackCategory: Category = {
 function matchCategory(input: string): Category {
   const lower = input.toLowerCase();
   return categories.find((c) => c.test(lower)) ?? fallbackCategory;
+}
+
+// A quick start you made yourself: your own first step comes first, then our suggestions.
+function categoryFor(input: string, ownStep: string | undefined): Category {
+  const matched = matchCategory(input);
+  if (!ownStep?.trim()) return matched;
+  return {
+    test: matched.test,
+    options: [{ step: ownStep.trim(), reason: "Your own first step. Just this, nothing more." }, matched.options[0]],
+    smaller: matched.smaller,
+  };
 }
 
 type DoneState =
@@ -430,6 +441,9 @@ function StuckContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const taskParam = searchParams.get("task") ?? "";
+  const qsParam = searchParams.get("qs") ?? "";
+  const myQuickStarts = useSyncExternalStore(subscribePreferences, getCustomQuickStarts, getServerQuickStarts);
+  const [customId, setCustomId] = useState("");
   const [text, setText] = useState(taskParam);
   const [sourceText, setSourceText] = useState(taskParam);
   const [category, setCategory] = useState<Category | null>(null);
@@ -441,20 +455,23 @@ function StuckContent() {
   useEffect(() => {
     // Also runs when the widget opens a different quick start while this page is already open.
     if (taskParam.trim()) {
+      const mine = qsParam ? getCustomQuickStarts().find((q) => q.id === qsParam) : undefined;
+      setCustomId(mine?.id ?? "");
       setText(taskParam);
       setSourceText(taskParam);
-      setCategory(matchCategory(taskParam));
+      setCategory(categoryFor(taskParam, mine?.step));
       setMainVariant(0);
       setShrunk(false);
       setDoneState({ status: "idle" });
       setPostDoneChoice("none");
     }
-  }, [taskParam]);
+  }, [taskParam, qsParam]);
 
   const displayed = category ? (shrunk ? category.smaller : category.options[mainVariant]) : null;
-  const mood = moodFor(sourceText);
+  const mine = customId ? myQuickStarts.find((q) => q.id === customId) : undefined;
+  const mood: Mood = mine?.mood ?? moodFor(sourceText);
   const colour = moods[mood];
-  const quick = quickStartFor(sourceText);
+  const quick = mine ? { label: mine.label, Icon: StarIcon } : quickStartFor(sourceText);
 
   const resetStepState = () => {
     setDoneState({ status: "idle" });
@@ -463,6 +480,7 @@ function StuckContent() {
 
   const handleSubmit = () => {
     if (!text.trim()) return;
+    setCustomId("");
     setSourceText(text);
     setCategory(matchCategory(text));
     setMainVariant(0);
@@ -489,6 +507,7 @@ function StuckContent() {
   };
 
   const doOneMoreThing = () => {
+    setCustomId("");
     setText("");
     setSourceText("");
     writeSomethingElse();
