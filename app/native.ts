@@ -21,6 +21,8 @@ type LiveTimer = {
 type AppSettings = {
   setAppearance: (options: { mode: string }) => Promise<unknown>;
   setWidgetData?: (options: { count: number; lastDate: string | null }) => Promise<unknown>;
+  setAppIcon?: (options: { name: string }) => Promise<{ ok?: boolean }>;
+  getAppIcon?: () => Promise<{ name?: string }>;
 };
 
 type CapacitorBridge = {
@@ -152,5 +154,24 @@ export function syncWidget(count: number, lastDate: string | null) {
     void bridge()?.Plugins?.AppSettings?.setWidgetData?.({ count, lastDate })?.catch(() => {});
   } catch {
     // No widget support here. That is fine.
+  }
+}
+
+// Settings > App icon (iPhone app only). Resolves false if this copy of the app can't switch icons.
+export async function setAppIcon(name: string): Promise<boolean> {
+  try {
+    const reply = await bridge()?.Plugins?.AppSettings?.setAppIcon?.({ name });
+    return !!reply?.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function getAppIcon(): Promise<string | null> {
+  try {
+    const reply = await bridge()?.Plugins?.AppSettings?.getAppIcon?.();
+    return reply?.name ?? null;
+  } catch {
+    return null;
   }
 }

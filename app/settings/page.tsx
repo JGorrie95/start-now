@@ -10,7 +10,7 @@ import { moods } from "@/app/moods";
 import { Avatar, uploadAvatar, removeAvatar, makeLocalPhoto } from "@/app/avatar";
 import { alarmSounds, previewSound, stopPreviewSound, type AlarmSound } from "@/app/sounds";
 import { subscribePreferences, getTheme, setTheme, getSound, setSound, getLocalPhoto, setLocalPhoto, saveLocalStreak, type ThemeChoice, type SoundId } from "@/app/preferences";
-import { testPhoneAlarm } from "@/app/native";
+import { testPhoneAlarm, setAppIcon, getAppIcon } from "@/app/native";
 import { leaveFriends } from "@/app/actions";
 
 type Account =
@@ -32,6 +32,17 @@ const textButton: CSSProperties = {
   height: "40px", padding: "0 10px", border: "none", background: "none", color: colors.inkSoft, fontSize: "14px",
   fontWeight: 600, fontFamily: fonts.body, cursor: "pointer",
 };
+
+// The app icons you can pick (iPhone app only). Pictures are in public/app-icons.
+const appIcons = [
+  { id: "ThreadsBlue", label: "Blue" },
+  { id: "ThreadsGreen", label: "Green" },
+  { id: "ThreadsCoral", label: "Coral" },
+  { id: "ThreadsAmber", label: "Amber" },
+  { id: "TimerGreen", label: "Ring green" },
+  { id: "TimerCoral", label: "Ring coral" },
+  { id: "TimerAmber", label: "Ring amber" },
+];
 
 const themeOptions: { id: ThemeChoice; label: string }[] = [
   { id: "system", label: "Automatic" },
@@ -156,6 +167,8 @@ export default function SettingsPage() {
   const [photoError, setPhotoError] = useState("");
   const [testMessage, setTestMessage] = useState("");
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [appIcon, setAppIconChoice] = useState<string | null>(null);
+  const [iconMessage, setIconMessage] = useState("");
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
@@ -180,6 +193,24 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, []);
+
+  // Which app icon is on the home screen right now (iPhone app only).
+  useEffect(() => {
+    let cancelled = false;
+    void getAppIcon().then((name) => {
+      if (!cancelled) setAppIconChoice(name);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const pickIcon = async (id: string) => {
+    setIconMessage("");
+    const ok = await setAppIcon(id);
+    if (ok) setAppIconChoice(id);
+    else setIconMessage("This needs the newest version of the app.");
+  };
 
   // Leaving the page stops any preview that's still playing.
   useEffect(() => () => stopPreviewSound(), []);
@@ -382,6 +413,35 @@ export default function SettingsPage() {
           })}
         </div>
         <p style={footnote}>Automatic follows your phone or computer: light in the day, dark at night if it&apos;s set up that way.</p>
+
+        {/* App icon (iPhone app only) */}
+        <div className="app-only">
+          <h2 style={sectionLabel}>APP ICON</h2>
+          <div role="radiogroup" aria-label="App icon" style={{ ...group, padding: "16px 12px", display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: "14px 6px" }}>
+            {appIcons.map((icon) => {
+              const selected = (appIcon ?? "ThreadsBlue") === icon.id;
+              return (
+                <button
+                  key={icon.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={icon.label}
+                  onClick={() => void pickIcon(icon.id)}
+                  className="solid-press"
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", color: colors.ink, fontFamily: fonts.body }}
+                >
+                  <span style={{ padding: "3px", borderRadius: "19px", boxShadow: selected ? `0 0 0 3px ${colors.pineDeep}` : "none" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/app-icons/${icon.id}.png`} alt="" width={60} height={60} style={{ width: "60px", height: "60px", borderRadius: "14px", display: "block" }} />
+                  </span>
+                  <span style={{ fontSize: "12px", fontWeight: selected ? 800 : 600, color: selected ? colors.ink : colors.inkSoft }}>{icon.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p style={footnote}>{iconMessage || "Your iPhone will show a quick message when the icon changes."}</p>
+        </div>
 
         {/* Alarm sound */}
         <h2 style={sectionLabel}>ALARM SOUND</h2>
