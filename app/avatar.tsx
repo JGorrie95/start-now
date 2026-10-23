@@ -2,19 +2,41 @@
 // Your profile photo: how it's shown, and how a new one is saved.
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { SparkMark } from "@/app/spark-mark";
+import { colors, tint } from "@/app/theme";
 
-// A round photo, or the Start Now mark on green when there isn't one yet.
-export function Avatar({ url, size = 44, label = "Your profile photo" }: { url: string | null | undefined; size?: number; label?: string }) {
-  // If a photo can't load (offline, or it was removed), show the mark instead of a broken image.
+// The colours a letter circle can be (the same ones as the quick start tiles).
+const letterColours = ["var(--g-lagoon)", "var(--g-dusk)", "var(--g-tide)", "var(--g-ember)", "var(--g-rose)"];
+
+// The same name always gets the same colour, so a friend stays easy to spot.
+function colourFor(name: string) {
+  let sum = 0;
+  for (const ch of name.toLowerCase()) sum = (sum * 31 + ch.charCodeAt(0)) % 9973;
+  return letterColours[sum % letterColours.length];
+}
+
+// A round photo. With no photo: a circle with the first letter of the name, or, with no
+// name yet, a plain person outline.
+export function Avatar({ url, size = 44, label = "Your profile photo", name }: { url: string | null | undefined; size?: number; label?: string; name?: string | null }) {
+  // If a photo can't load (offline, or it was removed), show the fallback instead of a broken image.
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
   if (url && url !== brokenUrl) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={url} alt={label} width={size} height={size} onError={() => setBrokenUrl(url)} style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", display: "block", flexShrink: 0 }} />;
   }
+  const initial = (name ?? "").trim().charAt(0).toUpperCase();
+  if (initial) {
+    return (
+      <span role="img" aria-label={label} style={{ width: size, height: size, borderRadius: "50%", background: colourFor(name ?? ""), color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 800, fontSize: Math.round(size * 0.46), lineHeight: 1, textDecoration: "none", fontFamily: "var(--font-body), system-ui, sans-serif" }}>
+        {initial}
+      </span>
+    );
+  }
   return (
-    <span role="img" aria-label={label} style={{ width: size, height: size, borderRadius: "50%", background: "linear-gradient(150deg, #1F5A4B 0%, #2B735F 55%, #368268 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <SparkMark size={Math.round(size * 0.52)} stroke="#FFFFFF" dot="#9FD9C6" />
+    <span role="img" aria-label={label} style={{ width: size, height: size, borderRadius: "50%", background: tint(colors.ink, 0.1), color: colors.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <svg width={Math.round(size * 0.52)} height={Math.round(size * 0.52)} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="8.5" r="3.8" />
+        <path d="M4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6" />
+      </svg>
     </span>
   );
 }

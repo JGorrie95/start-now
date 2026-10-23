@@ -1,18 +1,18 @@
-import { colors, tint } from "@/app/theme";
+import { tint } from "@/app/theme";
 
-export function SparkMark({ size = 24, stroke = colors.pineDeep, dot = colors.pine, glow = false }: { size?: number; stroke?: string; dot?: string; glow?: boolean }) {
+// The Start Now logo: the same blue "S" as the app icon, so the app looks the same everywhere.
+export function SparkMark({ size = 24, glow = false }: { size?: number; glow?: boolean }) {
   return (
     <span style={{ position: "relative", display: "inline-flex", width: size, height: size, flexShrink: 0 }}>
       {glow && (
         <span
           className="lit-glow"
-          style={{ position: "absolute", top: size * 0.02, right: -size * 0.18, width: size * 0.4, height: size * 0.4, borderRadius: "50%", background: tint(colors.pine, 0.4), filter: "blur(5px)" }}
+          aria-hidden="true"
+          style={{ position: "absolute", inset: -size * 0.12, borderRadius: size * 0.3, background: tint("#4F6DB8", 0.35), filter: "blur(10px)" }}
         />
       )}
-      <svg width={size} height={size} viewBox="0 0 24 24" style={{ position: "relative" }}>
-        <path d="M4 19 C 9 19, 14 15, 16.5 8" stroke={stroke} strokeWidth="2.8" strokeLinecap="round" fill="none" />
-        <circle cx="18" cy="5.5" r="4.2" fill={dot} />
-      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/icon-192.png" alt="" width={size} height={size} style={{ position: "relative", width: size, height: size, borderRadius: size * 0.225, display: "block" }} />
     </span>
   );
 }

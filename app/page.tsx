@@ -48,6 +48,7 @@ export default function HomePage() {
   const [account, setAccount] = useState<"checking" | "signedOut" | "signedIn">("checking");
   const [streak, setStreak] = useState<{ count: number; doneToday: boolean } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
   const today = useToday();
   const localPhoto = useSyncExternalStore(subscribePreferences, getLocalPhoto, () => null);
   const localStreak = useSyncExternalStore(subscribePreferences, getLocalStreak, () => NO_STREAK);
@@ -66,9 +67,10 @@ export default function HomePage() {
         syncWidget(phone.count, phone.lastDate);
         return;
       }
-      const { data } = await supabase.from("profiles").select("streak_count, last_completed_date, avatar_url").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("streak_count, last_completed_date, avatar_url, username").eq("id", user.id).single();
       if (!data) return;
       setAvatarUrl(data.avatar_url ?? null);
+      setMyName(data.username ?? null);
       syncWidget(data.streak_count ?? 0, data.last_completed_date ?? null);
       const now = streakNow({ count: data.streak_count ?? 0, longest: 0, lastDate: data.last_completed_date });
       setStreak({ count: now.count, doneToday: now.doneToday });
@@ -120,8 +122,8 @@ export default function HomePage() {
                   <circle cx="9" cy="17" r="2.2" />
                 </svg>
               </Link>
-              <Link href="/profile" aria-label="Your profile" style={{ display: "flex", flexShrink: 0 }}>
-                <Avatar url={isLoggedIn ? avatarUrl : localPhoto} size={44} />
+              <Link href="/profile" aria-label="Your profile" style={{ display: "flex", flexShrink: 0, textDecoration: "none" }}>
+                <Avatar url={isLoggedIn ? avatarUrl : localPhoto} size={44} name={isLoggedIn ? myName : null} />
               </Link>
             </div>
           </div>

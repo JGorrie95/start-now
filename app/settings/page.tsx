@@ -337,7 +337,7 @@ export default function SettingsPage() {
               <label style={{ position: "relative", cursor: photoBusy ? "wait" : "pointer", flexShrink: 0 }}>
                 <input type="file" accept="image/*" onChange={changePhoto} disabled={photoBusy} style={{ display: "none" }} />
                 <span style={{ display: "block", opacity: photoBusy ? 0.5 : 1, transition: "opacity 0.2s ease" }}>
-                  <Avatar url={account.avatarUrl} size={72} />
+                  <Avatar url={account.avatarUrl} size={72} name={account.username} />
                 </span>
                 <span aria-hidden="true" style={{ position: "absolute", right: "-2px", bottom: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, color: colors.onAccent, border: `3px solid ${colors.paper}`, display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8.5h3l1.8-2.5h6.4L17 8.5h3V19H4z" /><circle cx="12" cy="13.2" r="3.2" /></svg>

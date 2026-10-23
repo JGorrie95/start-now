@@ -243,7 +243,7 @@ export default function ProfilePage() {
         <div style={{ ...card, marginBottom: "16px", textAlign: "center", padding: "32px 24px" }}>
           <label style={{ display: "block", width: "84px", height: "84px", margin: "0 auto 16px", cursor: uploading ? "wait" : "pointer", position: "relative" }}>
             <input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} style={{ display: "none" }} />
-            <Avatar url={profile?.avatar_url} size={84} label={profile?.username ?? "Your profile photo"} />
+            <Avatar url={profile?.avatar_url} size={84} label={profile?.username ?? "Your profile photo"} name={profile?.username} />
             <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "28px", height: "28px", borderRadius: "50%", background: colors.pineDeep, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", border: `2px solid ${colors.paper}`, color: colors.onAccent }}>
               {uploading ? "…" : "📷"}
             </div>

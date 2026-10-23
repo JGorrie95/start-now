@@ -184,7 +184,7 @@ export default function FriendsPage() {
                   <div style={{ fontSize: "18px", fontWeight: 700, color: i === 0 ? colors.pineDeep : colors.inkFaint, width: "24px", textAlign: "center", fontFamily: fonts.display }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`}
                   </div>
-                  <Avatar url={person.avatar_url} size={34} label={person.username} />
+                  <Avatar url={person.avatar_url} size={34} label={person.username} name={person.username} />
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: "15px" }}>{person.username}</span>
                     {person.isMe && <span style={{ fontSize: "12px", color: colors.pineDeep, marginLeft: "8px" }}>you</span>}
