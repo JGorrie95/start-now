@@ -100,14 +100,9 @@ export default function HomePage() {
             Start Now
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {isLoggedIn ? (
-              <>
-                <button onClick={() => router.push("/friends")} style={navButton}>Friends</button>
-                <button onClick={() => router.push("/profile")} style={navButton}>Profile</button>
-              </>
-            ) : (
-              <button onClick={() => router.push("/auth")} style={navButton}>Sign in</button>
-            )}
+            <button onClick={() => router.push("/friends")} style={navButton}>Friends</button>
+            <button onClick={() => router.push("/profile")} style={navButton}>Profile</button>
+            <button onClick={() => router.push("/settings")} style={navButton}>Settings</button>
           </div>
         </div>
 
