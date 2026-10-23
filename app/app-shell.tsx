@@ -12,8 +12,8 @@ import { applyTheme } from "@/app/preferences";
 function StartIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 19 C 9 19, 14 15, 16.5 8" />
-      <circle cx="18" cy="5.5" r="2.6" fill="currentColor" />
+      <path d="M4 11.2L12 4.5l8 6.7" />
+      <path d="M6 9.8V19a1 1 0 0 0 1 1h3.2v-5.2h3.6V20H17a1 1 0 0 0 1-1V9.8" />
     </svg>
   );
 }
