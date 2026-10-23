@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { isNativeApp, tapHaptic } from "@/app/native";
 import { applyTheme } from "@/app/preferences";
 
@@ -49,6 +49,21 @@ const focusScreens = ["/stuck", "/invite"];
 
 export function AppShell() {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
+
+  // Tapping the home screen widget while the app is open: the iPhone app calls this to jump
+  // straight to a page (like a quick start), instead of reloading the whole site.
+  useEffect(() => {
+    const w = window as unknown as { startNowOpen?: (path: unknown) => boolean };
+    w.startNowOpen = (path: unknown) => {
+      if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) return false;
+      router.push(path);
+      return true;
+    };
+    return () => {
+      delete w.startNowOpen;
+    };
+  }, [router]);
 
   // Light / dark from Settings: also tells the iPhone app and Safari's top bar.
   useEffect(() => {

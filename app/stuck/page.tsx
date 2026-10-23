@@ -439,7 +439,16 @@ function StuckContent() {
   const [postDoneChoice, setPostDoneChoice] = useState<"none" | "stopped">("none");
 
   useEffect(() => {
-    if (taskParam.trim()) setCategory(matchCategory(taskParam));
+    // Also runs when the widget opens a different quick start while this page is already open.
+    if (taskParam.trim()) {
+      setText(taskParam);
+      setSourceText(taskParam);
+      setCategory(matchCategory(taskParam));
+      setMainVariant(0);
+      setShrunk(false);
+      setDoneState({ status: "idle" });
+      setPostDoneChoice("none");
+    }
   }, [taskParam]);
 
   const displayed = category ? (shrunk ? category.smaller : category.options[mainVariant]) : null;
